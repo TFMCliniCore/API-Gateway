@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GatewayService {
+  id           Int                 @id @default(autoincrement())
+  serviceKey   String              @unique @db.VarChar(50)
+  displayName  String              @db.VarChar(120)
+  targetUrl    String              @db.VarChar(300)
+  requiresAuth Boolean             @default(false)
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  routes       GatewayRoute[]
+  requestLogs  GatewayRequestLog[]
+
+  @@map("gateway_services")
+}
+
+model GatewayRoute {
+  id          Int            @id @default(autoincrement())
+  pathPrefix  String         @unique @db.VarChar(80)
+  description String?        @db.VarChar(300)
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  serviceId   Int
+  service     GatewayService @relation(fields: [serviceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("gateway_routes")
+}
+
+model GatewayRequestLog {
+  id         Int             @id @default(autoincrement())
+  method     String          @db.VarChar(10)
+  path       String          @db.VarChar(500)
+  query      String?         @db.VarChar(1000)
+  targetUrl  String?         @db.VarChar(500)
+  statusCode Int?
+  success    Boolean         @default(false)
+  clientIp   String?         @db.VarChar(100)
+  userAgent  String?         @db.VarChar(255)
+  createdAt  DateTime        @default(now())
+  serviceId  Int?
+  service    GatewayService? @relation(fields: [serviceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("gateway_request_logs")
+}
+
