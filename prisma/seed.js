@@ -12,6 +12,7 @@ const DEFAULT_MULTISUCURSAL_URL =
   process.env.MS_MULTISUCURSAL_URL || 'http://host.docker.internal:3004/api/v1';
 
 const coreRoutes = [
+  { pathPrefix: 'auth',       description: 'Rutas de autenticación (Login, Recuperación, etc).' }, 
   { pathPrefix: 'usuarios',   description: 'Rutas de usuarios del microservicio de entidades core.' },
   { pathPrefix: 'clientes',   description: 'Rutas de clientes del microservicio de entidades core.' },
   { pathPrefix: 'pacientes',  description: 'Rutas de pacientes del microservicio de entidades core.' },
