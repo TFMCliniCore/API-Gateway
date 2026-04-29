@@ -49,6 +49,17 @@ model GatewayRequestLog {
   serviceId  Int?
   service    GatewayService? @relation(fields: [serviceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
+  // ── Campos de auditoría ──────────────────────────────────────────────────
+  usuarioId  Int?
+  sucursalId Int?
+  accion     String?         @db.VarChar(20)   // CREATE READ UPDATE DELETE LOGIN LOGOUT ERROR
+  recurso    String?         @db.VarChar(80)   // usuarios, citas, pacientes...
+  detalle    String?         @db.VarChar(500)  // info adicional
+
+  @@index([usuarioId])
+  @@index([sucursalId])
+  @@index([accion])
+  @@index([recurso])
+  @@index([createdAt])
   @@map("gateway_request_logs")
 }
-
