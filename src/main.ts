@@ -31,7 +31,7 @@ async function bootstrap() {
     void gatewayService.handleProxyRequest(request, response, next);
   });
 
-  const port = Number(process.env.PORT ?? 3002);
+  const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
 }
 
