@@ -1,16 +1,10 @@
-import 'dotenv/config';
-import 'reflect-metadata';
-
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import type { NextFunction, Request, Response } from 'express';
-import helmet from 'helmet';
-
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { GatewayService } from './gateway/gateway.service';
 import * as express from 'express';
-import { urlencoded, json } from 'express';
-
+import { urlencoded, json, Request, Response, NextFunction } from 'express';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,18 +17,30 @@ async function bootstrap() {
     xssFilter: true,
   }));
 
-  // 2. CONFIGURACIÓN DE CORS (Antes de los middlewares de ruta)
+  // 2. CONFIGURACIÓN DE CORS
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN === '*' ? true : process.env.CORS_ORIGIN?.split(',') ?? true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-  // 3. BODY PARSERS (¡ESTO DEBE IR ANTES DEL GATEWAY!)
-  app.use(json({ limit: '1mb' })); 
+  app.setGlobalPrefix('api/v1');
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: false
+    })
+  );
+
+  app.enableShutdownHooks();
+
+  // 3. BODY PARSERS (Antes del Gateway)
+  app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
-  // 4. MIDDLEWARE DEL GATEWAY
+  // 4. MIDDLEWARE DEL GATEWAY (Con manejo de errores)[cite: 1]
   const gatewayService = app.get(GatewayService);
   app.use('/api/v1', async (request: Request, response: Response, next: NextFunction) => {
     try {
@@ -47,7 +53,6 @@ async function bootstrap() {
   // 5. INICIO DEL SERVIDOR
   const port = Number(process.env.PORT ?? 3002);
   await app.listen(port);
-  console.log(`🚀 Gateway corriendo en: http://localhost:${port}/api/v1`);  
+  console.log(`🚀 Gateway corriendo en: http://localhost:${port}/api/v1`);
 }
-
 bootstrap();

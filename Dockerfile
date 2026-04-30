@@ -16,7 +16,7 @@ COPY README.md ./README.md
 
 RUN npm run build
 
-EXPOSE 3002
+EXPOSE 3000
 
 CMD ["sh", "-c", "npx prisma migrate deploy && npm run prisma:seed && node dist/main.js"]
 
