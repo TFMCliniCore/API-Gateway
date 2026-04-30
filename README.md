@@ -122,3 +122,5 @@ MAIL_PORT=2525
 MAIL_USER=tu_usuario_de_mailtrap
 MAIL_PASS=tu_password_de_mailtrap
 MAIL_FROM="ClinicaVet <no-reply@clinicavet.test>"
+
+nota: se recomienda el uso de Mailtrap para capturar los correos salientes sin enviarlos a cuentas reales.
