@@ -1,0 +1,537 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "CliniCore API Gateway",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colección Postman para probar el API Gateway de CliniCore. Incluye endpoints propios del gateway y todas las rutas proxy hacia MS Entidades Core."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3002/api/v1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Gateway",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health",
+            "description": "Verifica la salud del gateway y la conexión a la base de datos."
+          }
+        },
+        {
+          "name": "Auth Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/status",
+            "description": "Retorna el estado actual del módulo JWT/Passport."
+          }
+        },
+        {
+          "name": "Listar servicios registrados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/gateway/services",
+            "description": "Lista todos los microservicios activos registrados en el gateway."
+          }
+        },
+        {
+          "name": "Listar rutas registradas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/gateway/routes",
+            "description": "Lista todos los prefijos de ruta activos y el microservicio al que apuntan."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/usuarios"
+          }
+        },
+        {
+          "name": "Obtener usuario por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/usuarios/1"
+          }
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Juliana Torres\",\n  \"email\": \"juliana.torres@clinicavet.test\",\n  \"celular\": \"3005557788\",\n  \"cargo\": \"Veterinaria\",\n  \"roles\": \"Veterinario\",\n  \"contrasena\": \"ClaveTemporal2026\",\n  \"foto\": \"https://picsum.photos/seed/juliana/400/400\",\n  \"sucursalId\": 1,\n  \"rolId\": 2\n}"
+            },
+            "url": "{{baseUrl}}/usuarios"
+          }
+        },
+        {
+          "name": "Actualizar usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cargo\": \"Veterinaria General\",\n  \"roles\": \"Veterinario\",\n  \"rolId\": 2,\n  \"sucursalId\": 2\n}"
+            },
+            "url": "{{baseUrl}}/usuarios/1"
+          }
+        },
+        {
+          "name": "Reemplazar usuario",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Juliana Torres\",\n  \"email\": \"juliana.torres@clinicavet.test\",\n  \"celular\": \"3005557788\",\n  \"cargo\": \"Veterinaria General\",\n  \"roles\": \"Veterinario\",\n  \"contrasena\": \"ClaveTemporal2026\",\n  \"foto\": \"https://picsum.photos/seed/juliana/400/400\",\n  \"sucursalId\": 2,\n  \"rolId\": 2\n}"
+            },
+            "url": "{{baseUrl}}/usuarios/1"
+          }
+        },
+        {
+          "name": "Eliminar usuario",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/usuarios/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clientes",
+      "item": [
+        {
+          "name": "Listar clientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/clientes"
+          }
+        },
+        {
+          "name": "Obtener cliente por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/clientes/1"
+          }
+        },
+        {
+          "name": "Crear cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Paula Herrera\",\n  \"email\": \"paula.herrera@test.com\",\n  \"celular\": \"3005559911\",\n  \"telefonoAlterno\": \"6015559898\",\n  \"direccion\": \"Calle 80 #15-20\",\n  \"ciudad\": \"Bogota\",\n  \"documento\": \"CC77889900\",\n  \"cumpleanos\": \"1991-09-10\",\n  \"observaciones\": \"Cliente nueva con dos mascotas registradas.\"\n}"
+            },
+            "url": "{{baseUrl}}/clientes"
+          }
+        },
+        {
+          "name": "Actualizar cliente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ciudad\": \"Bogota D.C.\",\n  \"observaciones\": \"Prefiere llamadas en la manana.\"\n}"
+            },
+            "url": "{{baseUrl}}/clientes/1"
+          }
+        },
+        {
+          "name": "Reemplazar cliente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Paula Herrera\",\n  \"email\": \"paula.herrera@test.com\",\n  \"celular\": \"3005559911\",\n  \"telefonoAlterno\": \"6015559898\",\n  \"direccion\": \"Calle 80 #15-20\",\n  \"ciudad\": \"Bogota D.C.\",\n  \"documento\": \"CC77889900\",\n  \"cumpleanos\": \"1991-09-10\",\n  \"observaciones\": \"Cliente actualizada por PUT.\"\n}"
+            },
+            "url": "{{baseUrl}}/clientes/1"
+          }
+        },
+        {
+          "name": "Eliminar cliente",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/clientes/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pacientes",
+      "item": [
+        {
+          "name": "Listar pacientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/pacientes"
+          }
+        },
+        {
+          "name": "Obtener paciente por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/pacientes/1"
+          }
+        },
+        {
+          "name": "Crear paciente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Toby\",\n  \"edad\": \"2 anos\",\n  \"sexo\": \"Macho\",\n  \"especie\": \"Canino\",\n  \"raza\": \"Labrador\",\n  \"peso\": \"14 kg\",\n  \"castrado\": true,\n  \"foto\": \"https://picsum.photos/seed/toby/600/400\",\n  \"fechaNacimiento\": \"2024-01-15\",\n  \"fechaIngreso\": \"2026-04-03\",\n  \"clienteId\": 1,\n  \"sedeId\": 1,\n  \"historiaClinicaId\": 2001,\n  \"alimentoPrincipal\": \"Concentrado de mantenimiento\"\n}"
+            },
+            "url": "{{baseUrl}}/pacientes"
+          }
+        },
+        {
+          "name": "Actualizar paciente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"peso\": \"14.8 kg\",\n  \"alimentoPrincipal\": \"Concentrado de mantenimiento senior\"\n}"
+            },
+            "url": "{{baseUrl}}/pacientes/1"
+          }
+        },
+        {
+          "name": "Reemplazar paciente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Toby\",\n  \"edad\": \"2 anos\",\n  \"sexo\": \"Macho\",\n  \"especie\": \"Canino\",\n  \"raza\": \"Labrador\",\n  \"peso\": \"14.8 kg\",\n  \"castrado\": true,\n  \"foto\": \"https://picsum.photos/seed/toby/600/400\",\n  \"fechaNacimiento\": \"2024-01-15\",\n  \"fechaIngreso\": \"2026-04-03\",\n  \"clienteId\": 1,\n  \"sedeId\": 1,\n  \"historiaClinicaId\": 2001,\n  \"alimentoPrincipal\": \"Concentrado de mantenimiento senior\"\n}"
+            },
+            "url": "{{baseUrl}}/pacientes/1"
+          }
+        },
+        {
+          "name": "Eliminar paciente",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/pacientes/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Listar roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/roles"
+          }
+        },
+        {
+          "name": "Obtener rol por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/roles/1"
+          }
+        },
+        {
+          "name": "Crear rol",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Auditor\",\n  \"descripcion\": \"Consulta informacion operativa sin editar datos.\",\n  \"permisoIds\": [1, 3, 5, 9]\n}"
+            },
+            "url": "{{baseUrl}}/roles"
+          }
+        },
+        {
+          "name": "Actualizar rol",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Consulta y audita informacion operativa.\",\n  \"permisoIds\": [1, 3, 5, 7, 9]\n}"
+            },
+            "url": "{{baseUrl}}/roles/1"
+          }
+        },
+        {
+          "name": "Reemplazar rol",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Administrador\",\n  \"descripcion\": \"Acceso completo a la plataforma y a la configuracion.\",\n  \"permisoIds\": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n}"
+            },
+            "url": "{{baseUrl}}/roles/1"
+          }
+        },
+        {
+          "name": "Eliminar rol",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/roles/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Permisos",
+      "item": [
+        {
+          "name": "Listar permisos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/permisos"
+          }
+        },
+        {
+          "name": "Obtener permiso por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/permisos/1"
+          }
+        },
+        {
+          "name": "Crear permiso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"reportes.read\",\n  \"descripcion\": \"Consultar reportes operativos.\"\n}"
+            },
+            "url": "{{baseUrl}}/permisos"
+          }
+        },
+        {
+          "name": "Actualizar permiso",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Consultar y descargar reportes operativos.\"\n}"
+            },
+            "url": "{{baseUrl}}/permisos/1"
+          }
+        },
+        {
+          "name": "Reemplazar permiso",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"usuarios.read\",\n  \"descripcion\": \"Consultar usuarios y sus datos basicos.\"\n}"
+            },
+            "url": "{{baseUrl}}/permisos/1"
+          }
+        },
+        {
+          "name": "Eliminar permiso",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/permisos/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sucursales",
+      "item": [
+        {
+          "name": "Listar sucursales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/sucursales"
+          }
+        },
+        {
+          "name": "Obtener sucursal por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/sucursales/1"
+          }
+        },
+        {
+          "name": "Crear sucursal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sede Sur\",\n  \"direccion\": \"Avenida 68 #22-10\",\n  \"telefono\": \"3005554455\",\n  \"email\": \"sur@clinicavet.test\",\n  \"redes\": \"https://instagram.com/clinicavet.sur\",\n  \"logo\": \"https://picsum.photos/seed/sede-sur/600/400\"\n}"
+            },
+            "url": "{{baseUrl}}/sucursales"
+          }
+        },
+        {
+          "name": "Actualizar sucursal",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"3005554499\",\n  \"redes\": \"https://facebook.com/clinicavet.sur\"\n}"
+            },
+            "url": "{{baseUrl}}/sucursales/1"
+          }
+        },
+        {
+          "name": "Reemplazar sucursal",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sede Norte\",\n  \"direccion\": \"Calle 123 #45-67\",\n  \"telefono\": \"3005554499\",\n  \"email\": \"norte@clinicavet.test\",\n  \"redes\": \"https://facebook.com/clinicavet.norte\",\n  \"logo\": \"https://picsum.photos/seed/sede-norte/600/400\"\n}"
+            },
+            "url": "{{baseUrl}}/sucursales/1"
+          }
+        },
+        {
+          "name": "Eliminar sucursal",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/sucursales/1"
+          }
+        }
+      ]
+    }
+  ]
+}

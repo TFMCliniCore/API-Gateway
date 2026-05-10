@@ -1,9 +1,12 @@
 import 'dotenv/config';
-
 import { defineConfig } from 'prisma/config';
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
+  // Añade este bloque para forzar la conexión al puerto 5433
+  datasource: {
+    url: "postgresql://postgres:postgres@localhost:5433/api_gateway?schema=public",
+  },
   migrations: {
     seed: 'node prisma/seed.js'
   }
