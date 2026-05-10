@@ -91,6 +91,9 @@ Eso permite que el frontend consuma el gateway manteniendo rutas como:
 | GET | `/api/v1/gateway/routes` | Lista de prefijos y microservicios registrados |
 | GET, POST, PUT, PATCH, DELETE | `/api/v1/:resource` | Rutas para recursos raiz registrados |
 | GET, POST, PUT, PATCH, DELETE | `/api/v1/:resource/*` | Rutas para rutas anidadas registradas |
+POST	/api/v1/auth/register	Registro de nuevos usuarios y envío de correo de bienvenida
+POST	/api/v1/auth/login	Validación de credenciales y generación de token JWT
+POST	/api/v1/auth/forgot-password	Solicitud de recuperación de contraseña vía email
 
 ## Estructura de base de datos
 
@@ -100,9 +103,8 @@ El gateway usa PostgreSQL con Prisma para:
 - `gateway_routes`: prefijos publicados por cada microservicio
 - `gateway_request_logs`: auditoria basica de peticiones encaminadas
 
-## JWT y Passport
-
-Las dependencias y el modulo base quedan creados, pero todavia no se aplican guards ni validaciones de token.
+## JWT y Passport (Actualizado)
+El módulo de autenticación ya se encuentra integrado y operativo para los flujos de registro y login, emitiendo tokens firmados para la comunicación entre servicios.
 
 
 ## Docker y despliegue
@@ -113,3 +115,12 @@ Este proyecto tiene su propio:
 - `docker-compose.yml`
 - `.env.example`
 - `prisma/`
+
+# Configuración de Correo (Nodemailer / Mailtrap)
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USER=tu_usuario_de_mailtrap
+MAIL_PASS=tu_password_de_mailtrap
+MAIL_FROM="ClinicaVet <no-reply@clinicavet.test>"
+
+nota: se recomienda el uso de Mailtrap para capturar los correos salientes sin enviarlos a cuentas reales.

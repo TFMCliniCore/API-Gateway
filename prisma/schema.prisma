@@ -31,6 +31,7 @@ model GatewayRoute {
   updatedAt   DateTime       @updatedAt
   serviceId   Int
   service     GatewayService @relation(fields: [serviceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  requiredRoles String?   // Ejemplo: "1,2" (IDs de roles permitidos) o null para todos
 
   @@map("gateway_routes")
 }
