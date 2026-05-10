@@ -4,6 +4,7 @@ import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NextFunction, Request, Response } from 'express';
+import express from 'express';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
@@ -27,6 +28,8 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const gatewayService = app.get(GatewayService);
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use('/api/v1', (request: Request, response: Response, next: NextFunction) => {
     void gatewayService.handleProxyRequest(request, response, next);
   });
