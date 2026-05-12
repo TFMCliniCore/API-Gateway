@@ -1,4 +1,8 @@
 import { NestFactory } from '@nestjs/core';
+import type { NextFunction, Request, Response } from 'express';
+import express from 'express';
+import helmet from 'helmet';
+
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { GatewayService } from './gateway/gateway.service';
@@ -42,6 +46,10 @@ async function bootstrap() {
 
   // 4. MIDDLEWARE DEL GATEWAY (Con manejo de errores)[cite: 1]
   const gatewayService = app.get(GatewayService);
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  app.use('/api/v1', (request: Request, response: Response, next: NextFunction) => {
+    void gatewayService.handleProxyRequest(request, response, next);
   app.use('/api/v1', async (request: Request, response: Response, next: NextFunction) => {
     try {
       await gatewayService.handleProxyRequest(request, response, next);
