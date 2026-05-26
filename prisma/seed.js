@@ -11,11 +11,15 @@ const DEFAULT_AGENDA_URL =
 const DEFAULT_MULTISUCURSAL_URL =
   process.env.MS_MULTISUCURSAL_URL || 'http://host.docker.internal:3004/api/v1';
 
+// REVISAR: Asegúrate de que el MS de Historias Clínicas corra en el 3005 o el asignado en tu docker
+const DEFAULT_HISTORIA_CLINICA_URL =
+  process.env.MS_HISTORIA_CLINICA_URL || 'http://host.docker.internal:3005/api/v1';
+
 const DEFAULT_INVENTARIO_URL =
   process.env.MS_INVENTARIO_URL || 'http://host.docker.internal:3007/api/v1';
 
 const coreRoutes = [
-  { pathPrefix: 'auth',       description: 'Rutas de autenticación (Login, Recuperación, etc).' }, // <--- AÑADE ESTO
+  { pathPrefix: 'auth',       description: 'Rutas de autenticación (Login, Recuperación, etc).' }, 
   { pathPrefix: 'usuarios',   description: 'Rutas de usuarios del microservicio de entidades core.' },
   { pathPrefix: 'clientes',   description: 'Rutas de clientes del microservicio de entidades core.' },
   { pathPrefix: 'pacientes',  description: 'Rutas de pacientes del microservicio de entidades core.' },
@@ -31,7 +35,12 @@ const agendaRoutes = [
 ];
 
 const multisucursalRoutes = [
-  { pathPrefix: 'asignaciones', description: 'Rutas de asignacion de usuarios a sucursales.' }
+  { pathPrefix: 'asignaciones', description: 'Rutas de asignación de usuarios a sucursales.' }
+];
+
+const historiaClinicaRoutes = [
+  { pathPrefix: 'historias',     description: 'Rutas de gestión de historias clínicas.' },
+  { pathPrefix: 'ficha',         description: 'Rutas de fichas clínicas y exportación de PDFs.' }
 ];
 
 const inventarioRoutes = [
@@ -59,10 +68,11 @@ async function registerService(serviceKey, displayName, targetUrl, routes) {
 }
 
 async function main() {
-  await registerService('entidades-core',  'MS Entidades Core', DEFAULT_CORE_URL,          coreRoutes);
-  await registerService('agenda',          'MS Agenda',         DEFAULT_AGENDA_URL,         agendaRoutes);
-  await registerService('multisucursal',   'MS Multisucursal',  DEFAULT_MULTISUCURSAL_URL,  multisucursalRoutes);
-  await registerService('inventario',      'MS Inventario',     DEFAULT_INVENTARIO_URL,     inventarioRoutes);
+  await registerService('entidades-core',   'MS Entidades Core',     DEFAULT_CORE_URL,             coreRoutes);
+  await registerService('agenda',           'MS Agenda',             DEFAULT_AGENDA_URL,           agendaRoutes);
+  await registerService('multisucursal',    'MS Multisucursal',      DEFAULT_MULTISUCURSAL_URL,    multisucursalRoutes);
+  await registerService('historia-clinica', 'MS Historia Clínica',   DEFAULT_HISTORIA_CLINICA_URL, historiaClinicaRoutes);
+  await registerService('inventario',       'MS Inventario',         DEFAULT_INVENTARIO_URL,       inventarioRoutes);
 }
 
 main()
