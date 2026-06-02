@@ -21,6 +21,7 @@ const DEFAULT_INTEGRACIONES_URL =
   process.env.MS_INTEGRACIONES_URL || 'http://host.docker.internal:3009/api/v1';
 
 const coreRoutes = [
+  { pathPrefix: 'auth',       description: 'Rutas de autenticación (Login, Recuperación, etc).' }, // <--- AÑADE ESTO
   { pathPrefix: 'usuarios',   description: 'Rutas de usuarios del microservicio de entidades core.' },
   { pathPrefix: 'clientes',   description: 'Rutas de clientes del microservicio de entidades core.' },
   { pathPrefix: 'pacientes',  description: 'Rutas de pacientes del microservicio de entidades core.' },
