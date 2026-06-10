@@ -150,26 +150,48 @@ export class GatewayService {
 
     // --- Lógica del Proxy ---
 
+    private readRawBody(request: Request): Promise<Buffer> {
+        return new Promise((resolve, reject) => {
+            const chunks: Buffer[] = [];
+            request.on('data', (chunk: Buffer) => chunks.push(chunk));
+            request.on('end', () => resolve(Buffer.concat(chunks)));
+            request.on('error', reject);
+        });
+    }
+
     private async forwardRequest(
-        request: Request, 
+        request: Request,
         response: Response,
-        route: RouteWithService, 
+        route: RouteWithService,
         remainingPath: string
     ){
         const targetUrl = `${route.service.targetUrl}/${route.pathPrefix}${remainingPath}`;
-        
+
+        const contentType = (request.headers['content-type'] as string) ?? '';
+        const isMultipart = contentType.includes('multipart/form-data');
+
+        // Para multipart leemos el stream crudo (los body-parsers lo dejan intacto)
+        const requestData = isMultipart ? await this.readRawBody(request) : request.body;
+
         const config: AxiosRequestConfig = {
             method: request.method as Method,
             url: targetUrl,
-            data: request.body,
-            headers: this.prepareHeaders(request, targetUrl),
+            data: requestData,
+            headers: this.prepareHeaders(request, targetUrl, isMultipart ? contentType : undefined),
             validateStatus: () => true,
-            timeout: 30000, 
+            timeout: 30000,
+            // Siempre recibir bytes crudos para poder distinguir JSON de binario
+            responseType: 'arraybuffer',
+            ...(isMultipart && {
+                maxBodyLength: Infinity,
+                maxContentLength: Infinity,
+                transformRequest: [(data: unknown) => data],
+            }),
         };
 
         try {
             const axiosResponse: AxiosResponse = await this.httpService.axiosRef.request(config);
-            
+
             // Registro detallado en DB y consola
             await this.registerLog({
                 request,
@@ -187,7 +209,26 @@ export class GatewayService {
                 success: axiosResponse.status < 400
             });
 
-            return response.status(axiosResponse.status).json(axiosResponse.data);
+            // ── Reenvío inteligente: JSON vs binario ──────────────────────
+            const resContentType = (axiosResponse.headers['content-type'] as string) ?? '';
+            const isJsonRes = resContentType.includes('application/json') || resContentType === '';
+
+            if (isJsonRes) {
+                // Decodificar buffer → texto → JSON
+                const text = Buffer.from(axiosResponse.data as ArrayBuffer).toString('utf8');
+                let parsed: unknown;
+                try   { parsed = text ? JSON.parse(text) : null; }
+                catch { parsed = text; }
+                return response.status(axiosResponse.status).json(parsed);
+            } else {
+                // Respuesta binaria (imagen, PDF, …) — reenviar bytes crudos
+                response.setHeader('Content-Type', resContentType);
+                const cc = axiosResponse.headers['cache-control'];
+                if (cc) response.setHeader('Cache-Control', cc as string);
+                return response
+                    .status(axiosResponse.status)
+                    .end(Buffer.from(axiosResponse.data as ArrayBuffer));
+            }
         } catch (error) {
             await this.registerLog({
                 request,
@@ -236,7 +277,7 @@ export class GatewayService {
         );
     }
 
-    private prepareHeaders(request: Request, targetUrl: string) {
+    private prepareHeaders(request: Request, targetUrl: string, overrideContentType?: string) {
         const { host, 'content-length': contentLength, connection, ...headers } = request.headers;
 
         try {
@@ -244,7 +285,8 @@ export class GatewayService {
             return {
                 ...headers,
                 host: url.host,
-                'Content-Type': 'application/json',
+                // Para multipart preservamos el Content-Type original (incluye el boundary)
+                'Content-Type': overrideContentType ?? 'application/json',
                 'x-forwarded-for': this.getClientIp(request) ?? '',
             };
         } catch {
