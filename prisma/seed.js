@@ -44,6 +44,7 @@ const inventarioRoutes = [
   { pathPrefix: 'productos',         description: 'CRUD de productos del MS Inventario.' },
   { pathPrefix: 'categorias',        description: 'CRUD de categorías del MS Inventario.' },
   { pathPrefix: 'movimientos-stock', description: 'Movimientos de stock del MS Inventario.' },
+  { pathPrefix: 'uploads',           description: 'Archivos estáticos (imágenes) del MS Inventario.' },
 ];
 
 const reportesRoutes = [
