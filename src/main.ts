@@ -1,36 +1,28 @@
 import { NestFactory } from '@nestjs/core';
+import type { NextFunction, Request, Response } from 'express';
+import helmet from 'helmet';
+import { urlencoded, json } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 
 import { AppModule } from './app.module';
 import { GatewayService } from './gateway/gateway.service';
 
-import express, {
-  json,
-  urlencoded,
-  Request,
-  Response,
-  NextFunction,
-} from 'express';
-
-import helmet from 'helmet';
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Seguridad
+  // 1. Seguridad
   app.use(
     helmet({
       hidePoweredBy: true,
-      hsts: {
-        maxAge: 31536000,
-        includeSubDomains: true,
-        preload: true,
-      },
+      hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
       frameguard: { action: 'deny' },
+      xssFilter: true,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginEmbedderPolicy: false,
     }),
   );
 
-  // CORS
+  // 2. CORS
   app.enableCors({
     origin:
       process.env.CORS_ORIGIN === '*'
@@ -53,11 +45,11 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
-  // Body parsers
+  // 3. Body parsers
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));
 
-  // Gateway
+  // 4. Proxy del gateway
   const gatewayService = app.get(GatewayService);
 
   app.use(
@@ -75,7 +67,7 @@ async function bootstrap() {
     },
   );
 
-  // Inicio servidor
+  // 5. Arranque
   const port = Number(process.env.PORT ?? 3002);
 
   await app.listen(port);

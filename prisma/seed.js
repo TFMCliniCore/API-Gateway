@@ -14,6 +14,12 @@ const DEFAULT_MULTISUCURSAL_URL =
 const DEFAULT_INVENTARIO_URL =
   process.env.MS_INVENTARIO_URL || 'http://host.docker.internal:3007/api/v1';
 
+const DEFAULT_REPORTES_URL =
+  process.env.MS_REPORTES_URL || 'http://host.docker.internal:3006/api/v1';
+
+const DEFAULT_INTEGRACIONES_URL =
+  process.env.MS_INTEGRACIONES_URL || 'http://host.docker.internal:3009/api/v1';
+
 const coreRoutes = [
   { pathPrefix: 'auth',       description: 'Rutas de autenticación (Login, Recuperación, etc).' }, // <--- AÑADE ESTO
   { pathPrefix: 'usuarios',   description: 'Rutas de usuarios del microservicio de entidades core.' },
@@ -38,6 +44,15 @@ const inventarioRoutes = [
   { pathPrefix: 'productos',         description: 'CRUD de productos del MS Inventario.' },
   { pathPrefix: 'categorias',        description: 'CRUD de categorías del MS Inventario.' },
   { pathPrefix: 'movimientos-stock', description: 'Movimientos de stock del MS Inventario.' },
+  { pathPrefix: 'uploads',           description: 'Archivos estáticos (imágenes) del MS Inventario.' },
+];
+
+const reportesRoutes = [
+  { pathPrefix: 'reportes', description: 'Rutas del MS Reportes y Métricas.' },
+];
+
+const integracionesRoutes = [
+  { pathPrefix: 'integraciones', description: 'Rutas del MS Integraciones y Backups.' },
 ];
 
 async function registerService(serviceKey, displayName, targetUrl, routes) {
@@ -63,6 +78,8 @@ async function main() {
   await registerService('agenda',          'MS Agenda',         DEFAULT_AGENDA_URL,         agendaRoutes);
   await registerService('multisucursal',   'MS Multisucursal',  DEFAULT_MULTISUCURSAL_URL,  multisucursalRoutes);
   await registerService('inventario',      'MS Inventario',     DEFAULT_INVENTARIO_URL,     inventarioRoutes);
+  await registerService('reportes',        'MS Reportes',       DEFAULT_REPORTES_URL,        reportesRoutes);
+  await registerService('integraciones',   'MS Integraciones',  DEFAULT_INTEGRACIONES_URL,   integracionesRoutes);
 }
 
 main()
