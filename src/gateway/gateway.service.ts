@@ -16,7 +16,7 @@ type Accion = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'ER
 export class GatewayService {
     private readonly internalPrefixes = [
         '/health',
-        '/auth/status',
+        '/auth',
         '/gateway/services',
         '/gateway/routes',
         '/auditoria'
