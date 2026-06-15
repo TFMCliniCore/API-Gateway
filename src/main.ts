@@ -1,66 +1,88 @@
 import { NestFactory } from '@nestjs/core';
-import type { NextFunction, Request, Response } from 'express';
-import express from 'express';
-import helmet from 'helmet';
-
 import { ValidationPipe } from '@nestjs/common';
+
 import { AppModule } from './app.module';
 import { GatewayService } from './gateway/gateway.service';
-import * as express from 'express';
-import { urlencoded, json, Request, Response, NextFunction } from 'express';
+
+import express, {
+  json,
+  urlencoded,
+  Request,
+  Response,
+  NextFunction,
+} from 'express';
+
 import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 1. Configuración de Seguridad (Helmet)
-  app.use(helmet({
-    hidePoweredBy: true,
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-    frameguard: { action: 'deny' },
-    xssFilter: true,
-  }));
+  // Seguridad
+  app.use(
+    helmet({
+      hidePoweredBy: true,
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+      frameguard: { action: 'deny' },
+    }),
+  );
 
-  // 2. CONFIGURACIÓN DE CORS
+  // CORS
   app.enableCors({
-    origin: process.env.CORS_ORIGIN === '*' ? true : process.env.CORS_ORIGIN?.split(',') ?? true,
+    origin:
+      process.env.CORS_ORIGIN === '*'
+        ? true
+        : process.env.CORS_ORIGIN?.split(',') ?? true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
   app.setGlobalPrefix('api/v1');
 
+  // Validation Pipes
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      forbidNonWhitelisted: false
-    })
+      forbidNonWhitelisted: false,
+    }),
   );
 
   app.enableShutdownHooks();
 
-  // 3. BODY PARSERS (Antes del Gateway)
-  app.use(json({ limit: '1mb' }));
-  app.use(urlencoded({ extended: true, limit: '1mb' }));
+  // Body parsers
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ extended: true, limit: '10mb' }));
 
-  // 4. MIDDLEWARE DEL GATEWAY (Con manejo de errores)[cite: 1]
+  // Gateway
   const gatewayService = app.get(GatewayService);
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-  app.use('/api/v1', (request: Request, response: Response, next: NextFunction) => {
-    void gatewayService.handleProxyRequest(request, response, next);
-  app.use('/api/v1', async (request: Request, response: Response, next: NextFunction) => {
-    try {
-      await gatewayService.handleProxyRequest(request, response, next);
-    } catch (error) {
-      next(error);
-    }
-  });
 
-  // 5. INICIO DEL SERVIDOR
+  app.use(
+    '/api/v1',
+    async (request: Request, response: Response, next: NextFunction) => {
+      try {
+        await gatewayService.handleProxyRequest(
+          request,
+          response,
+          next,
+        );
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  // Inicio servidor
   const port = Number(process.env.PORT ?? 3002);
+
   await app.listen(port);
-  console.log(`🚀 Gateway corriendo en: http://localhost:${port}/api/v1`);
+
+  console.log(
+    `🚀 Gateway corriendo en: http://localhost:${port}/api/v1`,
+  );
 }
+
 bootstrap();
