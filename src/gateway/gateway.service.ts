@@ -16,7 +16,7 @@ type Accion = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'ER
 export class GatewayService {
     private readonly internalPrefixes = [
         '/health',
-        '/auth/status',
+        '/auth',
         '/gateway/services',
         '/gateway/routes',
         '/auditoria'
@@ -83,33 +83,30 @@ export class GatewayService {
             }
 
             return await this.forwardRequest(request, response, route, remainingPath);
-        } catch (error: any) { // Cambiamos unknown por any para acceder a sus propiedades
-    const statusCode = error.status || 500;
-    
-    // El resto de tu lógica de error se mantiene igual
-    const resourceForError = await this.prisma.gatewayRoute.findFirst({
-        where: { pathPrefix: resource },
-        include: { service: true }
-    }).catch(() => null);
+        } catch (error: any) { 
+            const statusCode = error.status || 500;
+            
+            const resourceForError = await this.prisma.gatewayRoute.findFirst({
+                where: { pathPrefix: resource },
+                include: { service: true }
+            }).catch(() => null);
 
-    if (resourceForError) {
-        await this.registerLog({
-            request,
-            route: resourceForError as RouteWithService,
-            targetUrl: 'N/A',
-            statusCode,
-            success: false
-        });
+            if (resourceForError) {
+                await this.registerLog({
+                    request,
+                    route: resourceForError as RouteWithService,
+                    targetUrl: 'N/A',
+                    statusCode,
+                    success: false
+                });
+            }
+
+            return response.status(statusCode).json({
+                message: error.message || 'Error interno en el API Gateway',
+                statusCode
+            });
+        }
     }
-
-    return response.status(statusCode).json({
-        message: error.message || 'Error interno en el API Gateway',
-        statusCode
-    });
-}
-    }
-
-    
 
     // --- Métodos de consulta de configuración ---
 
@@ -150,77 +147,94 @@ export class GatewayService {
 
     // --- Lógica del Proxy ---
     private readRawBody(request: Request): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        request.on('data', (chunk: Buffer) => chunks.push(chunk));
-        request.on('end', () => resolve(Buffer.concat(chunks)));
-        request.on('error', reject);
-    });
-}
+        return new Promise((resolve, reject) => {
+            const chunks: Buffer[] = [];
+            request.on('data', (chunk: Buffer) => chunks.push(chunk));
+            request.on('end', () => resolve(Buffer.concat(chunks)));
+            request.on('error', reject);
+        });
+    }
 
     private async forwardRequest(
-    request: Request, 
-    response: Response, 
-    route: RouteWithService, 
-    remainingPath: string
-) {
-    const targetUrl = `${route.service.targetUrl}/${route.pathPrefix}${remainingPath}`;
-    const contentType = (request.headers['content-type'] as string) ?? '';
-    const isMultipart = contentType.includes('multipart/form-data');
+        request: Request,
+        response: Response,
+        route: RouteWithService,
+        remainingPath: string
+    ) {
+        const targetUrl = `${route.service.targetUrl}/${route.pathPrefix}${remainingPath}`;
+        const contentType = (request.headers['content-type'] as string) ?? '';
+        const isMultipart = contentType.includes('multipart/form-data');
 
-    // Para multipart leemos el stream crudo; los body-parsers de Express dejan el JSON normal en request.body
-    const requestData = isMultipart ? await this.readRawBody(request) : request.body;
+        // Para multipart leemos el stream crudo (los body-parsers lo dejan intacto)
+        const requestData = isMultipart ? await this.readRawBody(request) : request.body;
 
-    const config: AxiosRequestConfig = {
-        method: request.method as Method,
-        url: targetUrl,
-        data: requestData,
-        headers: this.prepareHeaders(request, targetUrl, isMultipart ? contentType : undefined),
-        validateStatus: () => true,
-        timeout: 30000,
-        responseType: 'arraybuffer', // Permite recibir bytes crudos para distinguir JSON de imágenes/PDFs
-        ...(isMultipart && {
-            maxBodyLength: Infinity,
-            maxContentLength: Infinity,
-            transformRequest: [(data: unknown) => data],
-        }),
-    };
+        const config: AxiosRequestConfig = {
+            method: request.method as Method,
+            url: targetUrl,
+            data: requestData,
+            headers: this.prepareHeaders(request, targetUrl, isMultipart ? contentType : undefined),
+            validateStatus: () => true,
+            timeout: 30000,
+            // Siempre recibir bytes crudos para poder distinguir JSON de binario
+            responseType: 'arraybuffer',
+            ...(isMultipart && {
+                maxBodyLength: Infinity,
+                maxContentLength: Infinity,
+                transformRequest: [(data: unknown) => data],
+            }),
+        };
 
-    try {
-    const axiosResponse: AxiosResponse = await this.httpService.axiosRef.request(config);
+        try {
+            const axiosResponse: AxiosResponse = await this.httpService.axiosRef.request(config);
 
-    // Pasamos todas las propiedades requeridas por el método registerLog
-    await this.registerLog({
-        request,
-        route,                          // <-- Añadido
-        targetUrl,                      // <-- Añadido
-        statusCode: axiosResponse.status, // <-- Añadido (sacado de la respuesta de axios)
-        success: axiosResponse.status < 400
-    });
+            // Registro detallado en DB y consola con las firmas corregidas
+            await this.registerLog({
+                request,
+                route,
+                targetUrl,
+                statusCode: axiosResponse.status,
+                success: axiosResponse.status < 400
+            });
 
-        const resContentType = (axiosResponse.headers['content-type'] as string) ?? '';
-        const isJsonRes = resContentType.includes('application/json') || resContentType === '';
+            await this.logToAuditoria({
+                request,
+                route,
+                targetUrl,
+                statusCode: axiosResponse.status,
+                success: axiosResponse.status < 400
+            });
 
-        if (isJsonRes) {
-            const text = Buffer.from(axiosResponse.data as ArrayBuffer).toString('utf8');
-            let parsed: unknown;
-            try { parsed = text ? JSON.parse(text) : null; }
-            catch { parsed = text; }
-            return response.status(axiosResponse.status).json(parsed);
-        } else {
-            // Reenvío de binarios (Imágenes, PDFs, etc.)
-            response.setHeader('Content-Type', resContentType);
-            const cc = axiosResponse.headers['cache-control'];
-            if (cc) response.setHeader('Cache-Control', cc as string);
-            return response
-                .status(axiosResponse.status)
-                .end(Buffer.from(axiosResponse.data as ArrayBuffer));
+            // ── Reenvío inteligente: JSON vs binario ──────────────────────
+            const resContentType = (axiosResponse.headers['content-type'] as string) ?? '';
+            const isJsonRes = resContentType.includes('application/json') || resContentType === '';
+
+            if (isJsonRes) {
+                // Decodificar buffer → texto → JSON
+                const text = Buffer.from(axiosResponse.data as ArrayBuffer).toString('utf8');
+                let parsed: unknown;
+                try   { parsed = text ? JSON.parse(text) : null; }
+                catch { parsed = text; }
+                return response.status(axiosResponse.status).json(parsed);
+            } else {
+                // Respuesta binaria (imagen, PDF, …) — reenviar bytes crudos
+                response.setHeader('Content-Type', resContentType);
+                const cc = axiosResponse.headers['cache-control'];
+                if (cc) response.setHeader('Cache-Control', cc as string);
+                return response
+                    .status(axiosResponse.status)
+                    .end(Buffer.from(axiosResponse.data as ArrayBuffer));
+            }
+        } catch (error) {
+            await this.registerLog({
+                request,
+                route,
+                targetUrl,
+                statusCode: 502,
+                success: false
+            });
+            return response.status(500).json({ message: 'Error interno en el Gateway Proxy' });
         }
-    } catch (error) {
-        // Asegúrate de manejar el error adecuadamente en tu catch original
-        return response.status(500).json({ message: 'Error interno en el Gateway Proxy' });
     }
-}
 
     private async resolveRoute(resource: string) {
         const route = await this.prisma.gatewayRoute.findFirst({
@@ -254,26 +268,26 @@ export class GatewayService {
     }
 
     private prepareHeaders(request: Request, targetUrl: string, overrideContentType?: string) {
-    // 1. Quitamos los headers originales que Express o el cliente metieron y que Axios debe recalcular de forma nativa
-    const { host, 'content-length': contentLength, connection, ...headers } = request.headers;
+        // 1. Quitamos los headers originales que Express o el cliente metieron y que Axios debe recalcular de forma nativa
+        const { host, 'content-length': contentLength, connection, ...headers } = request.headers;
 
-    try {
-        const url = new URL(targetUrl);
-        return {
-            ...headers,
-            host: url.host, // Ajusta el host al del microservicio destino
-            // Si viene un overrideContentType (como el de multipart con su boundary), usa ese. Si no, por defecto JSON.
-            'Content-Type': overrideContentType ?? 'application/json',
-            'x-forwarded-for': this.getClientIp(request) ?? '', // Mantiene la IP real del cliente
-        };
-    } catch {
-        // En caso de que targetUrl falle al parsearse, devuelve los headers limpios mutados
-        return {
-            ...headers,
-            'Content-Type': overrideContentType ?? 'application/json',
-        };
+        try {
+            const url = new URL(targetUrl);
+            return {
+                ...headers,
+                host: url.host, // Ajusta el host al del microservicio destino
+                // Si viene un overrideContentType (como el de multipart con su boundary), usa ese. Si no, por defecto JSON.
+                'Content-Type': overrideContentType ?? 'application/json',
+                'x-forwarded-for': this.getClientIp(request) ?? '', // Mantiene la IP real del cliente
+            };
+        } catch {
+            // En caso de que targetUrl falle al parsearse, devuelve los headers limpios mutados garantizando el Content-Type
+            return {
+                ...headers,
+                'Content-Type': overrideContentType ?? 'application/json',
+            };
+        }
     }
-}
 
     // --- Auditoría y Helpers ---
 
@@ -306,8 +320,8 @@ export class GatewayService {
                     detalle: `status:${input.statusCode}`,
                 }
             });
-        } catch (err: any) { // Cambia (err) por (err: any)
-        console.error('Error guardando log en DB:', err.message);
+        } catch (err: any) { 
+            console.error('Error guardando log en DB:', err.message);
         }
     }
 
@@ -336,8 +350,6 @@ export class GatewayService {
         const parsed = parseInt(val ?? '', 10);
         return isNaN(parsed) ? null : parsed;
     }
-
-    
 
     private getClientIp(request: Request) {
         const forwardedFor = request.headers['x-forwarded-for'];

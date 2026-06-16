@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import * as express from 'express';
-import { urlencoded, json, Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { GatewayService } from './gateway/gateway.service';
@@ -15,7 +15,10 @@ async function bootstrap() {
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
     frameguard: { action: 'deny' },
     xssFilter: true,
+    // El gateway sirve recursos (imágenes, archivos) a frontends en otros orígenes.
+    // "same-origin" bloquea cross-origin img/fetch desde el browser → se necesita "cross-origin".
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    // Permitir que frontends de otros orígenes embeban recursos del gateway
     crossOriginEmbedderPolicy: false,
   }));
 
@@ -33,7 +36,7 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
-  // 3. Body parsers estándar (sólo JSON y form-urlencoded hasta 10mb)
+  // 3. Body parsers (sólo JSON y form-urlencoded hasta 10mb; multipart/form-data se deja intacto)
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));
 
@@ -52,4 +55,5 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`🚀 Gateway corriendo en: http://localhost:${port}/api/v1`);
 }
+
 bootstrap();

@@ -23,11 +23,20 @@ services:
       dockerfile: Dockerfile
     container_name: clinicore-api-gateway
     restart: unless-stopped
-    environment:                           # <--- ¡Le devolvemos esto a Prisma y NestJS!
-      - PORT=${PORT}
-      - DATABASE_URL=postgresql://postgres:postgres@ms-entidades-db:5432/api_gateway?schema=public
-      - VENTAS_MS_URL=http://clinicore-ms-ventas:3008/api/v1
-      - MS_INVENTARIO_URL=http://ms-inventario-api:3007/api/v1
+    depends_on:
+      ms-entidades-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: ${PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      DATABASE_URL: postgresql://postgres:postgres@ms-entidades-db:5432/api_gateway?schema=public
+      VENTAS_MS_URL: http://clinicore-ms-ventas:3008/api/v1
+      MS_INVENTARIO_URL: http://ms-inventario-api:3007/api/v1
+      MS_ENTIDADES_CORE_URL: ${MS_ENTIDADES_CORE_URL}
+      MS_INTEGRACIONES_URL: ${MS_INTEGRACIONES_URL}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

@@ -17,6 +17,12 @@ const DEFAULT_HISTORIA_CLINICA_URL =
 const DEFAULT_INVENTARIO_URL =
   process.env.MS_INVENTARIO_URL || 'http://host.docker.internal:3007/api/v1';
 
+const DEFAULT_REPORTES_URL =
+  process.env.MS_REPORTES_URL || 'http://host.docker.internal:3006/api/v1';
+
+const DEFAULT_INTEGRACIONES_URL =
+  process.env.MS_INTEGRACIONES_URL || 'http://host.docker.internal:3009/api/v1';
+
 // 🚀 Nueva constante para el Microservicio de Ventas (Puerto 3008)
 const DEFAULT_VENTAS_URL =
   process.env.VENTAS_MS_URL || 'http://host.docker.internal:3008/api/v1';
@@ -47,10 +53,10 @@ const historiaClinicaRoutes = [
 ];
 
 const inventarioRoutes = [
-{ pathPrefix: 'productos',         description: 'CRUD de productos del MS Inventario.' },
-{ pathPrefix: 'categorias',        description: 'CRUD de categorías del MS Inventario.' },
-{ pathPrefix: 'movimientos-stock', description: 'Movimientos de stock del MS Inventario.' },
-{ pathPrefix: 'uploads',           description: 'Archivos estáticos (imágenes) del MS Inventario.' },
+  { pathPrefix: 'productos',         description: 'CRUD de productos del MS Inventario.' },
+  { pathPrefix: 'categorias',        description: 'CRUD de categorías del MS Inventario.' },
+  { pathPrefix: 'movimientos-stock', description: 'Movimientos de stock del MS Inventario.' },
+  { pathPrefix: 'uploads',           description: 'Archivos estáticos (imágenes) del MS Inventario.' },
 ];
 
 // 🚀 Nuevas rutas asociadas al módulo de Ventas
@@ -65,6 +71,14 @@ const ventasRoutes = [
   { pathPrefix: 'v1/ventas',      description: 'Variante v1 para ventas.' },
   { pathPrefix: 'v1/cierres-caja',description: 'Variante v1 para cierres de caja.' },
   { pathPrefix: 'v1/precios',     description: 'Variante v1 para precios.' }
+];
+
+const reportesRoutes = [
+  { pathPrefix: 'reportes', description: 'Rutas del MS Reportes y Métricas.' },
+];
+
+const integracionesRoutes = [
+  { pathPrefix: 'integraciones', description: 'Rutas del MS Integraciones y Backups.' },
 ];
 
 async function registerService(serviceKey, displayName, targetUrl, routes) {
@@ -86,14 +100,16 @@ async function registerService(serviceKey, displayName, targetUrl, routes) {
 }
 
 async function main() {
-  await registerService('entidades-core',   'MS Entidades Core',     DEFAULT_CORE_URL,             coreRoutes);
-  await registerService('agenda',           'MS Agenda',             DEFAULT_AGENDA_URL,           agendaRoutes);
-  await registerService('multisucursal',    'MS Multisucursal',      DEFAULT_MULTISUCURSAL_URL,    multisucursalRoutes);
-  await registerService('historia-clinica', 'MS Historia Clínica',   DEFAULT_HISTORIA_CLINICA_URL, historiaClinicaRoutes);
-  await registerService('inventario',       'MS Inventario',         DEFAULT_INVENTARIO_URL,       inventarioRoutes);
+  await registerService('entidades-core',   'MS Entidades Core',   DEFAULT_CORE_URL,             coreRoutes);
+  await registerService('agenda',           'MS Agenda',           DEFAULT_AGENDA_URL,           agendaRoutes);
+  await registerService('multisucursal',    'MS Multisucursal',    DEFAULT_MULTISUCURSAL_URL,    multisucursalRoutes);
+  await registerService('historia-clinica', 'MS Historia Clínica', DEFAULT_HISTORIA_CLINICA_URL, historiaClinicaRoutes);
+  await registerService('inventario',       'MS Inventario',       DEFAULT_INVENTARIO_URL,       inventarioRoutes);
+  await registerService('reportes',         'MS Reportes',         DEFAULT_REPORTES_URL,         reportesRoutes);
+  await registerService('integraciones',    'MS Integraciones',    DEFAULT_INTEGRACIONES_URL,    integracionesRoutes);
   
   // 🚀 Registramos el nuevo servicio en la ejecución principal
-  await registerService('ventas',           'MS Ventas',             DEFAULT_VENTAS_URL,           ventasRoutes);
+  await registerService('ventas',           'MS Ventas',           DEFAULT_VENTAS_URL,           ventasRoutes);
 }
 
 main()
