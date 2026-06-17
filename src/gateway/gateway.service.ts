@@ -83,33 +83,30 @@ export class GatewayService {
             }
 
             return await this.forwardRequest(request, response, route, remainingPath);
-        } catch (error: any) { // Cambiamos unknown por any para acceder a sus propiedades
-    const statusCode = error.status || 500;
-    
-    // El resto de tu lógica de error se mantiene igual
-    const resourceForError = await this.prisma.gatewayRoute.findFirst({
-        where: { pathPrefix: resource },
-        include: { service: true }
-    }).catch(() => null);
+        } catch (error: any) { 
+            const statusCode = error.status || 500;
+            
+            const resourceForError = await this.prisma.gatewayRoute.findFirst({
+                where: { pathPrefix: resource },
+                include: { service: true }
+            }).catch(() => null);
 
-    if (resourceForError) {
-        await this.registerLog({
-            request,
-            route: resourceForError as RouteWithService,
-            targetUrl: 'N/A',
-            statusCode,
-            success: false
-        });
+            if (resourceForError) {
+                await this.registerLog({
+                    request,
+                    route: resourceForError as RouteWithService,
+                    targetUrl: 'N/A',
+                    statusCode,
+                    success: false
+                });
+            }
+
+            return response.status(statusCode).json({
+                message: error.message || 'Error interno en el API Gateway',
+                statusCode
+            });
+        }
     }
-
-    return response.status(statusCode).json({
-        message: error.message || 'Error interno en el API Gateway',
-        statusCode
-    });
-}
-    }
-
-    
 
     // --- Métodos de consulta de configuración ---
 
@@ -149,7 +146,6 @@ export class GatewayService {
     }
 
     // --- Lógica del Proxy ---
-
     private readRawBody(request: Request): Promise<Buffer> {
         return new Promise((resolve, reject) => {
             const chunks: Buffer[] = [];
@@ -164,9 +160,8 @@ export class GatewayService {
         response: Response,
         route: RouteWithService,
         remainingPath: string
-    ){
+    ) {
         const targetUrl = `${route.service.targetUrl}/${route.pathPrefix}${remainingPath}`;
-
         const contentType = (request.headers['content-type'] as string) ?? '';
         const isMultipart = contentType.includes('multipart/form-data');
 
@@ -192,7 +187,7 @@ export class GatewayService {
         try {
             const axiosResponse: AxiosResponse = await this.httpService.axiosRef.request(config);
 
-            // Registro detallado en DB y consola
+            // Registro detallado en DB y consola con las firmas corregidas
             await this.registerLog({
                 request,
                 route,
@@ -237,12 +232,7 @@ export class GatewayService {
                 statusCode: 502,
                 success: false
             });
-
-            return response.status(502).json({
-                message: 'No fue posible comunicarse con el microservicio de destino.',
-                serviceKey: route.service.serviceKey,
-                targetUrl
-            });
+            return response.status(500).json({ message: 'Error interno en el Gateway Proxy' });
         }
     }
 
@@ -278,19 +268,24 @@ export class GatewayService {
     }
 
     private prepareHeaders(request: Request, targetUrl: string, overrideContentType?: string) {
+        // 1. Quitamos los headers originales que Express o el cliente metieron y que Axios debe recalcular de forma nativa
         const { host, 'content-length': contentLength, connection, ...headers } = request.headers;
 
         try {
             const url = new URL(targetUrl);
             return {
                 ...headers,
-                host: url.host,
-                // Para multipart preservamos el Content-Type original (incluye el boundary)
+                host: url.host, // Ajusta el host al del microservicio destino
+                // Si viene un overrideContentType (como el de multipart con su boundary), usa ese. Si no, por defecto JSON.
                 'Content-Type': overrideContentType ?? 'application/json',
-                'x-forwarded-for': this.getClientIp(request) ?? '',
+                'x-forwarded-for': this.getClientIp(request) ?? '', // Mantiene la IP real del cliente
             };
         } catch {
-            return headers;
+            // En caso de que targetUrl falle al parsearse, devuelve los headers limpios mutados garantizando el Content-Type
+            return {
+                ...headers,
+                'Content-Type': overrideContentType ?? 'application/json',
+            };
         }
     }
 
@@ -325,8 +320,8 @@ export class GatewayService {
                     detalle: `status:${input.statusCode}`,
                 }
             });
-        } catch (err: any) { // Cambia (err) por (err: any)
-        console.error('Error guardando log en DB:', err.message);
+        } catch (err: any) { 
+            console.error('Error guardando log en DB:', err.message);
         }
     }
 
@@ -355,8 +350,6 @@ export class GatewayService {
         const parsed = parseInt(val ?? '', 10);
         return isNaN(parsed) ? null : parsed;
     }
-
-    
 
     private getClientIp(request: Request) {
         const forwardedFor = request.headers['x-forwarded-for'];
