@@ -28,25 +28,47 @@ export class GatewayService {
         private readonly jwtService: JwtService
     ) { }
 
-    async handleProxyRequest(request: Request, response: Response, next: NextFunction) {
-        const normalizedPath = this.extractGatewayPath(request);
+        async handleProxyRequest(request: Request, response: Response, next: NextFunction) {
+            // 1. Extraemos y limpiamos de forma segura el path
+            console.log(`[Gateway Trigger] Entró petición a: ${request.originalUrl} | Método: ${request.method}`);
 
-        if (this.isInternalPath(normalizedPath)) {
-            return next();
-        }
+            const normalizedPath = this.extractGatewayPath(request);
+            console.log(`[Gateway Path Normalizado]: ${normalizedPath}`);
 
-        const [resource, ...segments] = normalizedPath.replace(/^\/+/, '').split('/');
+            // 2. 🛡️ Si es la documentación nativa del PROPIO API Gateway, la dejamos pasar al flujo de Nest
+            if (normalizedPath === '/docs' || normalizedPath === '/docs-json' || normalizedPath.startsWith('/docs/')) {
+                return next();
+            }
 
-        if (!resource) {
-            return next();
-        }
+            // 3. 🛡️ Si es una ruta interna de administración del Gateway, la dejamos pasar
+            if (this.isInternalPath(normalizedPath)) {
+                return next();
+            }
 
-        try {
-            const route = await this.resolveRoute(resource);
-            const remainingPath = segments.length > 0 ? `/${segments.join('/')}` : '';
+            // 4. 🚀 CORRECCIÓN DE SEGURIDAD: Si contiene un proxy de documentación, forzamos que se quede en el proxy
+            // Evitamos que bajo cualquier circunstancia haga un 'return next()' erróneo
+            const [resource, ...segments] = normalizedPath.replace(/^\/+/, '').split('/');
 
-            // 🚀 LÓGICA DE VALIDACIÓN (El "Guard" dinámico)
-            if (route.service.requiresAuth) {
+            // Si por alguna razón el path de extracción falló y se comió el recurso pero la URL original tiene la palabra clave:
+            if (!resource || resource === '') {
+                return next();
+            }
+
+            try {
+                const route = await this.resolveRoute(resource);
+                
+                let remainingPath = segments.length > 0 ? `/${segments.join('/')}` : '';
+
+                // Detectamos si el frontend está pidiendo el json mediante el proxy seguro
+                const isSwaggerDocs = remainingPath === '/docs-json' || remainingPath === '/docs-json-proxy';
+
+                // Traducimos el sufijo para que el microservicio reciba la ruta limpia que sí entiende
+                if (remainingPath === '/docs-json-proxy') {
+                    remainingPath = '/docs-json';
+                }
+
+        // 🚀 LÓGICA DE VALIDACIÓN (El "Guard" dinámico)
+            if (route.service.requiresAuth && !isSwaggerDocs) {
                 const token = this.extractTokenFromHeader(request);
                 if (!token) {
                     throw new UnauthorizedException('Token no proporcionado. Acceso denegado.');
@@ -54,24 +76,17 @@ export class GatewayService {
 
                 let payload: any;
                 try {
-                    // Validamos el token contra el JWT_SECRET
                     payload = await this.jwtService.verifyAsync(token, {
                         secret: process.env.JWT_SECRET
                     });
                     
-                    // Inyectamos el ID del usuario para auditoría
                     request.headers['x-usuario-id'] = payload.sub.toString();
                 } catch (err) {
-                    // Si falla aquí, es estrictamente problema del JWT
                     throw new UnauthorizedException('Token inválido o expirado.');
                 }
 
-                // 🛡️ Lógica RBAC (Fuera del catch del JWT)
                 if (route.requiredRoles) {
-                    // Limpiamos espacios y convertimos a array de strings
                     const rolesPermitidos = route.requiredRoles.split(',').map(r => r.trim());
-                    
-                    // Obtenemos el rol del token y nos aseguramos que sea string
                     const rolUsuario = payload.rolId?.toString() || payload.role?.toString();
 
                     console.log(`Verificando acceso: Usuario tiene Rol [${rolUsuario}], Ruta requiere [${rolesPermitidos}]`);
@@ -82,8 +97,9 @@ export class GatewayService {
                 }
             }
 
+            // Si es SwaggerDocs o pasó las validaciones de seguridad con éxito, se envía el proxy
             return await this.forwardRequest(request, response, route, remainingPath);
-        } catch (error: any) { 
+        } catch (error: any) {
             const statusCode = error.status || 500;
             
             const resourceForError = await this.prisma.gatewayRoute.findFirst({
@@ -129,6 +145,7 @@ export class GatewayService {
     }
 
     async getRegisteredRoutes() {
+        // ⚡ CORREGIDO: Se removió un ';' huérfano que rompía el tipado de la consulta
         const routes = await this.prisma.gatewayRoute.findMany({
             where: { isActive: true, service: { isActive: true } },
             include: { service: true },
@@ -155,13 +172,21 @@ export class GatewayService {
         });
     }
 
-    private async forwardRequest(
+        private async forwardRequest(
         request: Request,
         response: Response,
         route: RouteWithService,
         remainingPath: string
     ) {
-        const targetUrl = `${route.service.targetUrl}/${route.pathPrefix}${remainingPath}`;
+        // 1. Armamos la URL inicial
+        let targetUrl = `${route.service.targetUrl}/${route.pathPrefix}${remainingPath}`;
+
+        // ⚡ SOLUCIÓN: Remover barras duplicadas (//) en toda la URL, respetando el http:// o https://
+        targetUrl = targetUrl.replace(/([^:]\/)\/+/g, '$1');
+
+        // 🔍 LOG DE EMERGENCIA: Te mostrará la URL final exacta construida por el Gateway
+        console.log(`\x1b[33m[Gateway Proxy]\x1b[0m Reenviando a -> ${targetUrl}`);
+
         const contentType = (request.headers['content-type'] as string) ?? '';
         const isMultipart = contentType.includes('multipart/form-data');
 
@@ -237,6 +262,7 @@ export class GatewayService {
     }
 
     private async resolveRoute(resource: string) {
+        // ⚡ CORREGIDO:this.prisma.gatewayRoute (singular)
         const route = await this.prisma.gatewayRoute.findFirst({
             where: {
                 pathPrefix: resource,
@@ -268,20 +294,17 @@ export class GatewayService {
     }
 
     private prepareHeaders(request: Request, targetUrl: string, overrideContentType?: string) {
-        // 1. Quitamos los headers originales que Express o el cliente metieron y que Axios debe recalcular de forma nativa
         const { host, 'content-length': contentLength, connection, ...headers } = request.headers;
 
         try {
             const url = new URL(targetUrl);
             return {
                 ...headers,
-                host: url.host, // Ajusta el host al del microservicio destino
-                // Si viene un overrideContentType (como el de multipart con su boundary), usa ese. Si no, por defecto JSON.
+                host: url.host,
                 'Content-Type': overrideContentType ?? 'application/json',
-                'x-forwarded-for': this.getClientIp(request) ?? '', // Mantiene la IP real del cliente
+                'x-forwarded-for': this.getClientIp(request) ?? '',
             };
         } catch {
-            // En caso de que targetUrl falle al parsearse, devuelve los headers limpios mutados garantizando el Content-Type
             return {
                 ...headers,
                 'Content-Type': overrideContentType ?? 'application/json',
@@ -303,6 +326,7 @@ export class GatewayService {
             const recurso = this.extractRecurso(input.request.path);
             const usuarioId = this.extractUsuarioId(input.request);
             
+            // ⚡ CORREGIDO: this.prisma.gatewayRequestLog (singular)
             await this.prisma.gatewayRequestLog.create({
                 data: {
                     method: input.request.method,

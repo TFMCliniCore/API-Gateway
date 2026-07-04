@@ -8,8 +8,12 @@ const DEFAULT_CORE_URL =
 const DEFAULT_AGENDA_URL =
   process.env.MS_AGENDA_URL || 'http://host.docker.internal:3003/api/v1';
 
+// 🚀 Nueva constante para el Microservicio de CRUD Agenda (Puerto de tu contenedor ms-crud-agenda-api)
+const DEFAULT_CRUD_AGENDA_URL =
+  process.env.MS_CRUD_AGENDA_URL || 'http://host.docker.internal:3010/api/v1'; 
+
 const DEFAULT_MULTISUCURSAL_URL =
-  process.env.MS_MULTISUCURSAL_URL || 'http://host.docker.internal:3004/api/v1';
+  process.env.MS_MULTISUCURSAL_URL || 'http://host.docker.internal:3012/api/v1';
 
 const DEFAULT_HISTORIA_CLINICA_URL =
   process.env.MS_HISTORIA_CLINICA_URL || 'http://host.docker.internal:3005/api/v1';
@@ -17,15 +21,17 @@ const DEFAULT_HISTORIA_CLINICA_URL =
 const DEFAULT_INVENTARIO_URL =
   process.env.MS_INVENTARIO_URL || 'http://host.docker.internal:3007/api/v1';
 
-const DEFAULT_REPORTES_URL =
-  process.env.MS_REPORTES_URL || 'http://host.docker.internal:3006/api/v1';
+const DEFAULT_REPORTES_URL = 
+  process.env.MS_REPORTES_URL || 'http://host.docker.internal:3011/api/v1';
 
 const DEFAULT_INTEGRACIONES_URL =
   process.env.MS_INTEGRACIONES_URL || 'http://host.docker.internal:3009/api/v1';
 
-// 🚀 Nueva constante para el Microservicio de Ventas (Puerto 3008)
 const DEFAULT_VENTAS_URL =
   process.env.VENTAS_MS_URL || 'http://host.docker.internal:3008/api/v1';
+
+const DEFAULT_TELEMEDICINA_URL =
+  process.env.MS_TELEMEDICINA_URL || 'http://host.docker.internal:3002/api/v1';
 
 const coreRoutes = [
   { pathPrefix: 'auth',       description: 'Rutas de autenticación (Login, Recuperación, etc).' }, 
@@ -43,13 +49,21 @@ const agendaRoutes = [
   { pathPrefix: 'sala-espera',   description: 'Rutas de sala de espera del microservicio de agenda.' }
 ];
 
+// 🚀 Nuevas rutas y prefijo proxy de documentación para el CRUD Agenda
+const crudAgendaRoutes = [
+  { pathPrefix: 'crud-agenda',   description: 'Operaciones base de persistencia y tablas maestras de la agenda.' },
+  { pathPrefix: 'agenda-docs',   description: 'Rutas de documentación para el proxy de CRUD Agenda.' }
+];
+
 const multisucursalRoutes = [
-  { pathPrefix: 'asignaciones', description: 'Rutas de asignación de usuarios a sucursales.' }
+  { pathPrefix: 'asignaciones', description: 'Rutas de asignación de usuarios a sucursales.' },
+  { pathPrefix: 'multisede',    description: 'Rutas de documentación del microservicio multisede.' }
 ];
 
 const historiaClinicaRoutes = [
-  { pathPrefix: 'historias',     description: 'Rutas de gestión de historias clínicas.' },
-  { pathPrefix: 'ficha',         description: 'Rutas de fichas clínicas y exportación de PDFs.' }
+  { pathPrefix: 'historia-clinica', description: 'Rutas principales del MS Historia Clínica y Docs.' },
+  { pathPrefix: 'adjuntos',         description: 'Rutas para subida y galería de archivos médicos.' },
+  { pathPrefix: 'agenda',           description: 'Rutas espejo/proxy hacia MS Agenda.' }
 ];
 
 const inventarioRoutes = [
@@ -59,18 +73,15 @@ const inventarioRoutes = [
   { pathPrefix: 'uploads',           description: 'Archivos estáticos (imágenes) del MS Inventario.' },
 ];
 
-// 🚀 Nuevas rutas asociadas al módulo de Ventas
 const ventasRoutes = [
-  { pathPrefix: 'promociones',    description: 'Rutas de reglas de promoción y vigencias.' },
-  { pathPrefix: 'ventas',         description: 'Rutas de gestión de facturas e historial de ventas.' },
-  { pathPrefix: 'cierres-caja',   description: 'Rutas de turnos, apertura y cierres de caja.' },
-  { pathPrefix: 'precios',        description: 'Rutas de simulación e historial de variación de precios.' },
-  
-  // 🚀 Variantes por si el proxy del Gateway no remueve correctamente el segmento v1 internamente
-  { pathPrefix: 'v1/promociones', description: 'Variante v1 para promociones.' },
-  { pathPrefix: 'v1/ventas',      description: 'Variante v1 para ventas.' },
-  { pathPrefix: 'v1/cierres-caja',description: 'Variante v1 para cierres de caja.' },
-  { pathPrefix: 'v1/precios',     description: 'Variante v1 para precios.' }
+  { pathPrefix: 'promociones',     description: 'Rutas de reglas de promoción y vigencias.' },
+  { pathPrefix: 'ventas',          description: 'Rutas de gestión de facturas e historial de ventas.' },
+  { pathPrefix: 'cierres-caja',    description: 'Rutas de turnos, apertura y cierres de caja.' },
+  { pathPrefix: 'precios',         description: 'Rutas de simulación e historial de variación de precios.' },
+  { pathPrefix: 'v1/promociones',  description: 'Variante v1 para promociones.' },
+  { pathPrefix: 'v1/ventas',       description: 'Variante v1 para ventas.' },
+  { pathPrefix: 'v1/cierres-caja', description: 'Variante v1 para cierres de caja.' },
+  { pathPrefix: 'v1/precios',      description: 'Variante v1 para precios.' }
 ];
 
 const reportesRoutes = [
@@ -79,6 +90,10 @@ const reportesRoutes = [
 
 const integracionesRoutes = [
   { pathPrefix: 'integraciones', description: 'Rutas del MS Integraciones y Backups.' },
+];
+
+const telemedicinaRoutes = [
+  { pathPrefix: 'telemedicina', description: 'Rutas principales de videollamadas y sesiones virtuales.' }
 ];
 
 async function registerService(serviceKey, displayName, targetUrl, routes) {
@@ -102,14 +117,17 @@ async function registerService(serviceKey, displayName, targetUrl, routes) {
 async function main() {
   await registerService('entidades-core',   'MS Entidades Core',   DEFAULT_CORE_URL,             coreRoutes);
   await registerService('agenda',           'MS Agenda',           DEFAULT_AGENDA_URL,           agendaRoutes);
+  
+  // 🚀 Registramos el nuevo microservicio de CRUD Agenda en el ecosistema
+  await registerService('crud-agenda',      'MS CRUD Agenda Base', DEFAULT_CRUD_AGENDA_URL,      crudAgendaRoutes);
+  
   await registerService('multisucursal',    'MS Multisucursal',    DEFAULT_MULTISUCURSAL_URL,    multisucursalRoutes);
   await registerService('historia-clinica', 'MS Historia Clínica', DEFAULT_HISTORIA_CLINICA_URL, historiaClinicaRoutes);
   await registerService('inventario',       'MS Inventario',       DEFAULT_INVENTARIO_URL,       inventarioRoutes);
   await registerService('reportes',         'MS Reportes',         DEFAULT_REPORTES_URL,         reportesRoutes);
   await registerService('integraciones',    'MS Integraciones',    DEFAULT_INTEGRACIONES_URL,    integracionesRoutes);
-  
-  // 🚀 Registramos el nuevo servicio en la ejecución principal
   await registerService('ventas',           'MS Ventas',           DEFAULT_VENTAS_URL,           ventasRoutes);
+  await registerService('telemedicina',     'MS Telemedicina',     DEFAULT_TELEMEDICINA_URL,     telemedicinaRoutes);
 }
 
 main()
