@@ -8,10 +8,6 @@ const DEFAULT_CORE_URL =
 const DEFAULT_AGENDA_URL =
   process.env.MS_AGENDA_URL || 'http://host.docker.internal:3003/api/v1';
 
-// 🚀 Nueva constante para el Microservicio de CRUD Agenda (Puerto de tu contenedor ms-crud-agenda-api)
-const DEFAULT_CRUD_AGENDA_URL =
-  process.env.MS_CRUD_AGENDA_URL || 'http://host.docker.internal:3010/api/v1'; 
-
 const DEFAULT_MULTISUCURSAL_URL =
   process.env.MS_MULTISUCURSAL_URL || 'http://host.docker.internal:3012/api/v1';
 
@@ -47,12 +43,6 @@ const agendaRoutes = [
   { pathPrefix: 'citas',         description: 'Rutas de citas del microservicio de agenda.' },
   { pathPrefix: 'recordatorios', description: 'Rutas de recordatorios del microservicio de agenda.' },
   { pathPrefix: 'sala-espera',   description: 'Rutas de sala de espera del microservicio de agenda.' }
-];
-
-// 🚀 Nuevas rutas y prefijo proxy de documentación para el CRUD Agenda
-const crudAgendaRoutes = [
-  { pathPrefix: 'crud-agenda',   description: 'Operaciones base de persistencia y tablas maestras de la agenda.' },
-  { pathPrefix: 'agenda-docs',   description: 'Rutas de documentación para el proxy de CRUD Agenda.' }
 ];
 
 const multisucursalRoutes = [
@@ -117,10 +107,6 @@ async function registerService(serviceKey, displayName, targetUrl, routes) {
 async function main() {
   await registerService('entidades-core',   'MS Entidades Core',   DEFAULT_CORE_URL,             coreRoutes);
   await registerService('agenda',           'MS Agenda',           DEFAULT_AGENDA_URL,           agendaRoutes);
-  
-  // 🚀 Registramos el nuevo microservicio de CRUD Agenda en el ecosistema
-  await registerService('crud-agenda',      'MS CRUD Agenda Base', DEFAULT_CRUD_AGENDA_URL,      crudAgendaRoutes);
-  
   await registerService('multisucursal',    'MS Multisucursal',    DEFAULT_MULTISUCURSAL_URL,    multisucursalRoutes);
   await registerService('historia-clinica', 'MS Historia Clínica', DEFAULT_HISTORIA_CLINICA_URL, historiaClinicaRoutes);
   await registerService('inventario',       'MS Inventario',       DEFAULT_INVENTARIO_URL,       inventarioRoutes);

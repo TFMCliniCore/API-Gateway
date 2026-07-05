@@ -39,9 +39,8 @@ services:
       MS_ENTIDADES_CORE_URL: http://ms-entidades-api:3005/api/v1
       MS_INTEGRACIONES_URL: ${MS_INTEGRACIONES_URL}
       
-      # 🚀 NUEVO: URLs apuntando directamente a los contenedores internos de la Agenda
+      # 🚀 URLs apuntando directamente a los contenedores internos de la Agenda Activa
       MS_AGENDA_URL: http://ms-agenda-api:3003/api/v1
-      MS_CRUD_AGENDA_URL: http://ms-crud-agenda-api:3020/api/v1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -51,7 +50,7 @@ services:
       - red_inventario
       - red_ventas
       - red_entidades 
-      - red_agenda # 🚀 Conectamos el gateway a la red de la agenda
+      - red_agenda # Conectamos el gateway únicamente a la red de la agenda principal
 
 volumes:
   api_gateway_postgres_data:
@@ -68,12 +67,7 @@ networks:
     external: true
     name: ms_entidades-core_default
     
-  # 🎯 Ajustado con el nombre real de tu comando para MS Agenda:
+  # Red real del MS Agenda que se queda:
   red_agenda:
     external: true
     name: ms_agenda_ms-agenda-net
-
-  # 🎯 Ajustado con el nombre real de tu comando para MS CRUD Agenda:
-  red_crud_agenda:
-    external: true
-    name: ms_crudagenda_default

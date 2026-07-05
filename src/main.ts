@@ -53,7 +53,7 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  // 🎯 5. CONFIGURACIÓN DE AGREGACIÓN UNIFICADA EXPANDIDA
+  // 🎯 5. CONFIGURACIÓN DE AGREGACIÓN UNIFICADA EXPANDIDA (Limpia de CRUD Agenda)
   SwaggerModule.setup('api/v1/docs', app, document, {
     explorer: true, 
     swaggerOptions: {
@@ -77,10 +77,6 @@ async function bootstrap() {
         {
           url: '/api/v1/citas/docs-json-proxy', 
           name: 'MS Agenda y Citas'
-        },
-        {
-          url: '/api/v1/agenda-docs/docs-json-proxy', // 🚀 NUEVO: Proxy de documentación del CRUD Agenda
-          name: 'MS CRUD Agenda Base'
         },
         {
           url: '/api/v1/historia-clinica/docs-json-proxy', 
