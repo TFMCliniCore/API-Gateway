@@ -6,10 +6,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { GatewayAdminController } from './gateway-admin.controller';
 import { GatewayService } from './gateway.service';
 
-
 @Module({
   imports: [HttpModule, AuthModule],
   controllers: [GatewayAdminController],
   providers: [GatewayService],
+  exports: [GatewayService], 
 })
 export class GatewayModule {}

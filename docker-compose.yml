@@ -29,22 +29,28 @@ services:
     environment:
       NODE_ENV: development
       PORT: ${PORT}
+      PUBLIC_PORT: ${PUBLIC_PORT}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       CORS_ORIGIN: ${CORS_ORIGIN}
       DATABASE_URL: postgresql://postgres:postgres@ms-entidades-db:5432/api_gateway?schema=public
       VENTAS_MS_URL: http://clinicore-ms-ventas:3008/api/v1
       MS_INVENTARIO_URL: http://ms-inventario-api:3007/api/v1
-      MS_ENTIDADES_CORE_URL: ${MS_ENTIDADES_CORE_URL}
+      MS_ENTIDADES_CORE_URL: http://ms-entidades-api:3005/api/v1
       MS_INTEGRACIONES_URL: ${MS_INTEGRACIONES_URL}
+      
+      # 🚀 URLs apuntando directamente a los contenedores internos de la Agenda Activa
+      MS_AGENDA_URL: http://ms-agenda-api:3003/api/v1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "${PORT}:${PORT}"
+      - "3010:3000"
     networks:
       - default
       - red_inventario
       - red_ventas
+      - red_entidades 
+      - red_agenda # Conectamos el gateway únicamente a la red de la agenda principal
 
 volumes:
   api_gateway_postgres_data:
@@ -57,3 +63,11 @@ networks:
   red_ventas:
     external: true
     name: ms-ventas_default
+  red_entidades:
+    external: true
+    name: ms_entidades-core_default
+    
+  # Red real del MS Agenda que se queda:
+  red_agenda:
+    external: true
+    name: ms_agenda_ms-agenda-net
