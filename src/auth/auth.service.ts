@@ -1,11 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios'; 
-import { JwtService } from '@nestjs/jwt'; // 👈 1. Importamos el generador de tokens de NestJS
+import { JwtService } from '@nestjs/jwt';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class AuthService {
-  // 👈 2. Inyectamos JwtService en el constructor junto al HttpService
   constructor(
     private readonly httpService: HttpService,
     private readonly jwtService: JwtService 
@@ -25,17 +24,18 @@ export class AuthService {
         contrasena: password 
       };
 
-      const urlCore = `${baseUrl.replace(/\/$/, '')}/usuarios/login`; 
+      // 🎯 Corrección: Cambiado de '/auth/login' a '/usuarios/login'
+      const urlCore = `${baseUrl.replace(/\/$/, '')}/usuarios/login`;
       console.log('🚀 [Gateway] Enviando POST a:', urlCore);
       
       const response = await lastValueFrom(
         this.httpService.post(urlCore, payloadDestino)
       );
 
-      // 🎯 Guardamos el usuario devuelto por el microservicio de entidades
+      // Guardamos el usuario devuelto por el microservicio de entidades
       const usuario = response.data;
 
-      // 🔑 3. Creamos el contenido (payload) que llevará el JWT
+      // Creamos el contenido (payload) que llevará el JWT
       const payloadJwt = {
         id: usuario.id,
         email: usuario.email,
@@ -44,10 +44,10 @@ export class AuthService {
         sucursalId: usuario.sucursalId
       };
 
-      // ✍️ 4. Firmamos el token usando la clave secreta configurada en el módulo
+      // Firmamos el token usando la clave secreta configurada en el módulo
       const token = this.jwtService.sign(payloadJwt);
 
-      // 🚀 5. Retornamos la estructura EXACTA que el frontend está esperando leer
+      // Retornamos la estructura que el frontend espera
       return {
         access_token: token,
         usuario: usuario

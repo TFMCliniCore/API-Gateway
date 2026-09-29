@@ -3,40 +3,40 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const DEFAULT_CORE_URL =
-  process.env.MS_ENTIDADES_CORE_URL || 'http://host.docker.internal:3001/api/v1';
+  process.env.MS_ENTIDADES_CORE_URL || process.env.MS_ENTIDADES_URL || 'https://ms-entidades-core.onrender.com/api/v1';
 
 const DEFAULT_AGENDA_URL =
-  process.env.MS_AGENDA_URL || 'http://host.docker.internal:3003/api/v1';
+  process.env.MS_AGENDA_URL || 'https://ms-agenda-core.onrender.com/api/v1';
 
 const DEFAULT_MULTISUCURSAL_URL =
-  process.env.MS_MULTISUCURSAL_URL || 'http://host.docker.internal:3012/api/v1';
+  process.env.MS_MULTISUCURSAL_URL || 'https://ms-multisucursal.onrender.com/api/v1';
 
 const DEFAULT_HISTORIA_CLINICA_URL =
-  process.env.MS_HISTORIA_CLINICA_URL || 'http://host.docker.internal:3005/api/v1';
+  process.env.MS_HISTORIA_CLINICA_URL || 'https://ms-historia-clinica.onrender.com/api/v1';
 
 const DEFAULT_INVENTARIO_URL =
-  process.env.MS_INVENTARIO_URL || 'http://host.docker.internal:3007/api/v1';
+  process.env.MS_INVENTARIO_URL || 'https://ms-inventario.onrender.com/api/v1';
 
 const DEFAULT_REPORTES_URL = 
-  process.env.MS_REPORTES_URL || 'http://host.docker.internal:3011/api/v1';
+  process.env.MS_REPORTES_URL || 'https://ms-reportes.onrender.com/api/v1';
 
 const DEFAULT_INTEGRACIONES_URL =
-  process.env.MS_INTEGRACIONES_URL || 'http://host.docker.internal:3009/api/v1';
+  process.env.MS_INTEGRACIONES_URL || 'https://ms-integraciones.onrender.com/api/v1';
 
 const DEFAULT_VENTAS_URL =
-  process.env.VENTAS_MS_URL || 'http://host.docker.internal:3008/api/v1';
+  process.env.MS_VENTAS_URL || process.env.VENTAS_MS_URL || 'https://ms-ventas.onrender.com/api/v1';
 
 const DEFAULT_TELEMEDICINA_URL =
-  process.env.MS_TELEMEDICINA_URL || 'http://host.docker.internal:3002/api/v1';
+  process.env.MS_TELEMEDICINA_URL || 'https://ms-telemedicina.onrender.com/api/v1';
 
 const coreRoutes = [
-  { pathPrefix: 'auth',       description: 'Rutas de autenticación (Login, Recuperación, etc).' }, 
-  { pathPrefix: 'usuarios',   description: 'Rutas de usuarios del microservicio de entidades core.' },
-  { pathPrefix: 'clientes',   description: 'Rutas de clientes del microservicio de entidades core.' },
-  { pathPrefix: 'pacientes',  description: 'Rutas de pacientes del microservicio de entidades core.' },
-  { pathPrefix: 'roles',      description: 'Rutas de roles del microservicio de entidades core.' },
-  { pathPrefix: 'permisos',   description: 'Rutas de permisos del microservicio de entidades core.' },
-  { pathPrefix: 'sucursales', description: 'Rutas de sucursales del microservicio de entidades core.' }
+  { pathPrefix: 'auth',        description: 'Rutas de autenticación (Login, Recuperación, etc).' }, 
+  { pathPrefix: 'usuarios',    description: 'Rutas de usuarios del microservicio de entidades core.' },
+  { pathPrefix: 'clientes',    description: 'Rutas de clientes del microservicio de entidades core.' },
+  { pathPrefix: 'pacientes',   description: 'Rutas de pacientes del microservicio de entidades core.' },
+  { pathPrefix: 'roles',       description: 'Rutas de roles del microservicio de entidades core.' },
+  { pathPrefix: 'permisos',    description: 'Rutas de permisos del microservicio de entidades core.' },
+  { pathPrefix: 'sucursales',  description: 'Rutas de sucursales del microservicio de entidades core.' }
 ];
 
 const agendaRoutes = [
@@ -57,10 +57,10 @@ const historiaClinicaRoutes = [
 ];
 
 const inventarioRoutes = [
-  { pathPrefix: 'productos',         description: 'CRUD de productos del MS Inventario.' },
-  { pathPrefix: 'categorias',        description: 'CRUD de categorías del MS Inventario.' },
+  { pathPrefix: 'productos',        description: 'CRUD de productos del MS Inventario.' },
+  { pathPrefix: 'categorias',       description: 'CRUD de categorías del MS Inventario.' },
   { pathPrefix: 'movimientos-stock', description: 'Movimientos de stock del MS Inventario.' },
-  { pathPrefix: 'uploads',           description: 'Archivos estáticos (imágenes) del MS Inventario.' },
+  { pathPrefix: 'uploads',          description: 'Archivos estáticos (imágenes) del MS Inventario.' },
 ];
 
 const ventasRoutes = [
