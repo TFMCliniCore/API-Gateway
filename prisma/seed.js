@@ -83,7 +83,9 @@ const integracionesRoutes = [
 ];
 
 const telemedicinaRoutes = [
-  { pathPrefix: 'telemedicina', description: 'Rutas principales de videollamadas y sesiones virtuales.' }
+  { pathPrefix: 'videoconsultas', description: 'Rutas para registro, actualización y consulta de videoconsultas.' },
+  { pathPrefix: 'sesiones',       description: 'Rutas para control de inicio, actualización y fin de sesiones.' },
+  { pathPrefix: 'telemedicina',   description: 'Rutas con prefijo unificado de telemedicina.' }
 ];
 
 async function registerService(serviceKey, displayName, targetUrl, routes) {
