@@ -28,46 +28,44 @@ export class GatewayService {
         private readonly jwtService: JwtService
     ) { }
 
-        async handleProxyRequest(request: Request, response: Response, next: NextFunction) {
-            // 1. Extraemos y limpiamos de forma segura el path
-            console.log(`[Gateway Trigger] Entró petición a: ${request.originalUrl} | Método: ${request.method}`);
+    async handleProxyRequest(request: Request, response: Response, next: NextFunction) {
+        // 1. Extraemos y limpiamos de forma segura el path
+        console.log(`[Gateway Trigger] Entró petición a: ${request.originalUrl} | Método: ${request.method}`);
 
-            const normalizedPath = this.extractGatewayPath(request);
-            console.log(`[Gateway Path Normalizado]: ${normalizedPath}`);
+        const normalizedPath = this.extractGatewayPath(request);
+        console.log(`[Gateway Path Normalizado]: ${normalizedPath}`);
 
-            // 2. 🛡️ Si es la documentación nativa del PROPIO API Gateway, la dejamos pasar al flujo de Nest
-            if (normalizedPath === '/docs' || normalizedPath === '/docs-json' || normalizedPath.startsWith('/docs/')) {
-                return next();
+        // 2. 🛡️ Si es la documentación nativa del PROPIO API Gateway, la dejamos pasar al flujo de Nest
+        if (normalizedPath === '/docs' || normalizedPath === '/docs-json' || normalizedPath.startsWith('/docs/')) {
+            return next();
+        }
+
+        // 3. 🛡️ Si es una ruta interna de administración del Gateway, la dejamos pasar
+        if (this.isInternalPath(normalizedPath)) {
+            return next();
+        }
+
+        // 4. 🚀 CORRECCIÓN DE SEGURIDAD: Si contiene un proxy de documentación, forzamos que se quede en el proxy
+        const [resource, ...segments] = normalizedPath.replace(/^\/+/, '').split('/');
+
+        if (!resource || resource === '') {
+            return next();
+        }
+
+        try {
+            const route = await this.resolveRoute(resource);
+            
+            let remainingPath = segments.length > 0 ? `/${segments.join('/')}` : '';
+
+            // Detectamos si el frontend está pidiendo el json mediante el proxy seguro
+            const isSwaggerDocs = remainingPath === '/docs-json' || remainingPath === '/docs-json-proxy';
+
+            // Traducimos el sufijo para que el microservicio reciba la ruta limpia que sí entiende
+            if (remainingPath === '/docs-json-proxy') {
+                remainingPath = '/docs-json';
             }
 
-            // 3. 🛡️ Si es una ruta interna de administración del Gateway, la dejamos pasar
-            if (this.isInternalPath(normalizedPath)) {
-                return next();
-            }
-
-            // 4. 🚀 CORRECCIÓN DE SEGURIDAD: Si contiene un proxy de documentación, forzamos que se quede en el proxy
-            // Evitamos que bajo cualquier circunstancia haga un 'return next()' erróneo
-            const [resource, ...segments] = normalizedPath.replace(/^\/+/, '').split('/');
-
-            // Si por alguna razón el path de extracción falló y se comió el recurso pero la URL original tiene la palabra clave:
-            if (!resource || resource === '') {
-                return next();
-            }
-
-            try {
-                const route = await this.resolveRoute(resource);
-                
-                let remainingPath = segments.length > 0 ? `/${segments.join('/')}` : '';
-
-                // Detectamos si el frontend está pidiendo el json mediante el proxy seguro
-                const isSwaggerDocs = remainingPath === '/docs-json' || remainingPath === '/docs-json-proxy';
-
-                // Traducimos el sufijo para que el microservicio reciba la ruta limpia que sí entiende
-                if (remainingPath === '/docs-json-proxy') {
-                    remainingPath = '/docs-json';
-                }
-
-        // 🚀 LÓGICA DE VALIDACIÓN (El "Guard" dinámico)
+            // 🚀 LÓGICA DE VALIDACIÓN (El "Guard" dinámico)
             if (route.service.requiresAuth && !isSwaggerDocs) {
                 const token = this.extractTokenFromHeader(request);
                 if (!token) {
@@ -145,7 +143,6 @@ export class GatewayService {
     }
 
     async getRegisteredRoutes() {
-        // ⚡ CORREGIDO: Se removió un ';' huérfano que rompía el tipado de la consulta
         const routes = await this.prisma.gatewayRoute.findMany({
             where: { isActive: true, service: { isActive: true } },
             include: { service: true },
@@ -163,8 +160,17 @@ export class GatewayService {
     }
 
     // --- Lógica del Proxy ---
+
+    // ⚡ FIX 2: Previene cuelgues por Stream ya consumido o finalizado
     private readRawBody(request: Request): Promise<Buffer> {
         return new Promise((resolve, reject) => {
+            if (request.complete || request.readableEnded) {
+                if (Buffer.isBuffer(request.body)) {
+                    return resolve(request.body);
+                }
+                return resolve(Buffer.from([]));
+            }
+
             const chunks: Buffer[] = [];
             request.on('data', (chunk: Buffer) => chunks.push(chunk));
             request.on('end', () => resolve(Buffer.concat(chunks)));
@@ -172,25 +178,31 @@ export class GatewayService {
         });
     }
 
-        private async forwardRequest(
+    private async forwardRequest(
         request: Request,
         response: Response,
         route: RouteWithService,
         remainingPath: string
     ) {
-        // 1. Armamos la URL inicial
-        let targetUrl = `${route.service.targetUrl}/${route.pathPrefix}${remainingPath}`;
+        // ⚡ FIX 1: Preserva la query string original (parámetros GET, filtros, paginación)
+        const queryString = request.originalUrl.includes('?') 
+            ? '?' + request.originalUrl.split('?').slice(1).join('?') 
+            : '';
 
-        // ⚡ SOLUCIÓN: Remover barras duplicadas (//) en toda la URL, respetando el http:// o https://
+        // 1. Armamos la URL final incluyendo los query params
+        let targetUrl = `${route.service.targetUrl}/${route.pathPrefix}${remainingPath}${queryString}`;
         targetUrl = targetUrl.replace(/([^:]\/)\/+/g, '$1');
 
-        // 🔍 LOG DE EMERGENCIA: Te mostrará la URL final exacta construida por el Gateway
         console.log(`\x1b[33m[Gateway Proxy]\x1b[0m Reenviando a -> ${targetUrl}`);
+        
+        // 🔍 LOG DE CONTROL: Verifica en la consola si el body llega con datos desde el frontend
+        if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
+            console.log(`\x1b[36m[Gateway Payload Saliente]:\x1b[0m`, JSON.stringify(request.body));
+        }
 
         const contentType = (request.headers['content-type'] as string) ?? '';
         const isMultipart = contentType.includes('multipart/form-data');
 
-        // Para multipart leemos el stream crudo (los body-parsers lo dejan intacto)
         const requestData = isMultipart ? await this.readRawBody(request) : request.body;
 
         const config: AxiosRequestConfig = {
@@ -198,9 +210,8 @@ export class GatewayService {
             url: targetUrl,
             data: requestData,
             headers: this.prepareHeaders(request, targetUrl, isMultipart ? contentType : undefined),
-            validateStatus: () => true,
+            validateStatus: () => true, // Evita que Axios lance excepción en HTTP 4xx/5xx
             timeout: 30000,
-            // Siempre recibir bytes crudos para poder distinguir JSON de binario
             responseType: 'arraybuffer',
             ...(isMultipart && {
                 maxBodyLength: Infinity,
@@ -212,7 +223,6 @@ export class GatewayService {
         try {
             const axiosResponse: AxiosResponse = await this.httpService.axiosRef.request(config);
 
-            // Registro detallado en DB y consola con las firmas corregidas
             await this.registerLog({
                 request,
                 route,
@@ -229,19 +239,36 @@ export class GatewayService {
                 success: axiosResponse.status < 400
             });
 
-            // ── Reenvío inteligente: JSON vs binario ──────────────────────
             const resContentType = (axiosResponse.headers['content-type'] as string) ?? '';
-            const isJsonRes = resContentType.includes('application/json') || resContentType === '';
+            const isJsonRes = resContentType.includes('application/json');
 
+            // ── 🛡️ GARANTÍA DE FORMATO JSON ──────────────────────────────────────────
             if (isJsonRes) {
-                // Decodificar buffer → texto → JSON
                 const text = Buffer.from(axiosResponse.data as ArrayBuffer).toString('utf8');
-                let parsed: unknown;
-                try   { parsed = text ? JSON.parse(text) : null; }
-                catch { parsed = text; }
+                let parsed: any;
+                try { 
+                    parsed = text ? JSON.parse(text) : {}; 
+                } catch { 
+                    parsed = { message: text }; 
+                }
+
+                // Si el backend devolvió un primitivo (ej: "Credenciales incorrectas" en texto plano con header json)
+                if (typeof parsed !== 'object' || parsed === null) {
+                    parsed = { message: String(parsed) };
+                }
+
                 return response.status(axiosResponse.status).json(parsed);
             } else {
-                // Respuesta binaria (imagen, PDF, …) — reenviar bytes crudos
+                // 🎯 Si el microservicio devolvió un error (4xx o 5xx) pero NO vino en formato JSON (ej. HTML o text/plain)
+                if (axiosResponse.status >= 400) {
+                    const text = Buffer.from(axiosResponse.data as ArrayBuffer).toString('utf8');
+                    return response.status(axiosResponse.status).json({
+                        message: text || `El microservicio respondió con error status ${axiosResponse.status}`,
+                        statusCode: axiosResponse.status
+                    });
+                }
+
+                // Si la respuesta es exitosa (200 OK) y binaria (Imágenes, PDF, etc.)
                 response.setHeader('Content-Type', resContentType);
                 const cc = axiosResponse.headers['cache-control'];
                 if (cc) response.setHeader('Cache-Control', cc as string);
@@ -257,12 +284,14 @@ export class GatewayService {
                 statusCode: 502,
                 success: false
             });
-            return response.status(500).json({ message: 'Error interno en el Gateway Proxy' });
+            return response.status(502).json({ 
+                message: 'Error de comunicación en el API Gateway al conectar con el microservicio.',
+                statusCode: 502 
+            });
         }
     }
 
     private async resolveRoute(resource: string) {
-        // ⚡ CORREGIDO:this.prisma.gatewayRoute (singular)
         const route = await this.prisma.gatewayRoute.findFirst({
             where: {
                 pathPrefix: resource,
@@ -326,7 +355,6 @@ export class GatewayService {
             const recurso = this.extractRecurso(input.request.path);
             const usuarioId = this.extractUsuarioId(input.request);
             
-            // ⚡ CORREGIDO: this.prisma.gatewayRequestLog (singular)
             await this.prisma.gatewayRequestLog.create({
                 data: {
                     method: input.request.method,
