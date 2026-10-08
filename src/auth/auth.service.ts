@@ -10,7 +10,7 @@ export class AuthService {
     private readonly jwtService: JwtService 
   ) {}
 
-  async login(email: string, password: string) {
+  async login(email: string, contrasena: string) {
     const baseUrl = process.env.MS_ENTIDADES_CORE_URL;
     console.log('🔍 [Gateway] Intentando conectar usando MS_ENTIDADES_CORE_URL:', baseUrl);
 
@@ -21,10 +21,9 @@ export class AuthService {
     try {
       const payloadDestino = {
         email: email,
-        contrasena: password 
+        contrasena: contrasena 
       };
 
-      // 🎯 Corrección: Cambiado de '/auth/login' a '/usuarios/login'
       const urlCore = `${baseUrl.replace(/\/$/, '')}/usuarios/login`;
       console.log('🚀 [Gateway] Enviando POST a:', urlCore);
       
@@ -32,10 +31,8 @@ export class AuthService {
         this.httpService.post(urlCore, payloadDestino)
       );
 
-      // Guardamos el usuario devuelto por el microservicio de entidades
       const usuario = response.data;
 
-      // Creamos el contenido (payload) que llevará el JWT
       const payloadJwt = {
         id: usuario.id,
         email: usuario.email,
@@ -44,10 +41,8 @@ export class AuthService {
         sucursalId: usuario.sucursalId
       };
 
-      // Firmamos el token usando la clave secreta configurada en el módulo
       const token = this.jwtService.sign(payloadJwt);
 
-      // Retornamos la estructura que el frontend espera
       return {
         access_token: token,
         usuario: usuario

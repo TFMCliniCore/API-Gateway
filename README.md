@@ -103,7 +103,7 @@ Authorization: Bearer <access_token>
 ```json
 {
   "email": "admin@clinicavet.test",
-  "password": "MiContrasena123"
+  "contrasena": "MiContrasena123"
 }
 ```
 
