@@ -266,14 +266,14 @@ export class GatewayService {
                     parsed = { message: text }; 
                 }
 
-                // Si el backend devolvió un primitivo
+                // Si el backend devolvió un primitivo (ej: "Credenciales incorrectas" en texto plano con header json)
                 if (typeof parsed !== 'object' || parsed === null) {
                     parsed = { message: String(parsed) };
                 }
 
                 return response.status(axiosResponse.status).json(parsed);
             } else {
-                // 🎯 Si el microservicio devolvió un error (4xx o 5xx) pero NO vino en formato JSON
+                // 🎯 Si el microservicio devolvió un error (4xx o 5xx) pero NO vino en formato JSON (ej. HTML o text/plain)
                 if (axiosResponse.status >= 400) {
                     const text = Buffer.from(axiosResponse.data as ArrayBuffer).toString('utf8');
                     return response.status(axiosResponse.status).json({
