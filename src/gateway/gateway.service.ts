@@ -194,16 +194,30 @@ export class GatewayService {
         targetUrl = targetUrl.replace(/([^:]\/)\/+/g, '$1');
 
         console.log(`\x1b[33m[Gateway Proxy]\x1b[0m Reenviando a -> ${targetUrl}`);
-        
-        // 🔍 LOG DE CONTROL: Verifica en la consola si el body llega con datos desde el frontend
-        if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
-            console.log(`\x1b[36m[Gateway Payload Saliente]:\x1b[0m`, JSON.stringify(request.body));
-        }
 
         const contentType = (request.headers['content-type'] as string) ?? '';
         const isMultipart = contentType.includes('multipart/form-data');
+        const isJson = contentType.includes('application/json');
 
-        const requestData = isMultipart ? await this.readRawBody(request) : request.body;
+        let requestData: any;
+        if (isMultipart) {
+            requestData = await this.readRawBody(request);
+        } else if (isJson) {
+            const rawBuffer = await this.readRawBody(request);
+            const rawString = rawBuffer.toString('utf8');
+            try {
+                requestData = rawString ? JSON.parse(rawString) : {};
+            } catch {
+                requestData = rawString;
+            }
+        } else {
+            requestData = request.body;
+        }
+
+        // 🔍 LOG DE CONTROL: Verifica en la consola si el body llega con datos desde el frontend
+        if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
+            console.log(`\x1b[36m[Gateway Payload Saliente]:\x1b[0m`, JSON.stringify(requestData));
+        }
 
         const config: AxiosRequestConfig = {
             method: request.method as Method,

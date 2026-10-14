@@ -5,10 +5,11 @@ import { AuthModule } from '../auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { GatewayAdminController } from './gateway-admin.controller';
 import { GatewayService } from './gateway.service';
+import { GatewayProxyController } from './gateway-proxy.controller';
 
 @Module({
   imports: [HttpModule, AuthModule],
-  controllers: [GatewayAdminController],
+  controllers: [GatewayAdminController, GatewayProxyController],
   providers: [GatewayService],
   exports: [GatewayService], 
 })
