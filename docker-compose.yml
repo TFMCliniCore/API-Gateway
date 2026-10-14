@@ -41,6 +41,7 @@ services:
       
       # 🚀 URLs apuntando directamente a los contenedores internos de la Agenda Activa
       MS_AGENDA_URL: http://ms-agenda-api:3003/api/v1
+      MS_TELEMEDICINA_URL: ${MS_TELEMEDICINA_URL:-http://host.docker.internal:3005/api/v1}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
