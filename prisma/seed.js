@@ -27,7 +27,7 @@ const DEFAULT_VENTAS_URL =
   process.env.MS_VENTAS_URL || process.env.VENTAS_MS_URL || 'https://ms-ventas.onrender.com/api/v1';
 
 const DEFAULT_TELEMEDICINA_URL =
-  process.env.MS_TELEMEDICINA_URL || 'https://ms-telemedicina.onrender.com/api/v1';
+  process.env.MS_TELEMEDICINA_URL || 'http://host.docker.internal:3005/api/v1';
 
 const coreRoutes = [
   { pathPrefix: 'auth',        description: 'Rutas de autenticación (Login, Recuperación, etc).' }, 
@@ -85,6 +85,7 @@ const integracionesRoutes = [
 const telemedicinaRoutes = [
   { pathPrefix: 'videoconsultas', description: 'Rutas para registro, actualización y consulta de videoconsultas.' },
   { pathPrefix: 'sesiones',       description: 'Rutas para control de inicio, actualización y fin de sesiones.' },
+  { pathPrefix: 'meet',           description: 'Rutas para crear enlaces y gestionar sesiones de Google Meet.' },
   { pathPrefix: 'telemedicina',   description: 'Rutas con prefijo unificado de telemedicina.' }
 ];
 
