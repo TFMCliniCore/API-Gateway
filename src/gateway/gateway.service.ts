@@ -164,13 +164,25 @@ export class GatewayService {
     // ⚡ FIX 2: Previene cuelgues por Stream ya consumido o finalizado
     private readRawBody(request: Request): Promise<Buffer> {
         return new Promise((resolve, reject) => {
-            if (request.complete || request.readableEnded) {
+            // 1. Si Express ya procesó y parseó el body (ej. application/json o urlencoded)
+            if (request.body !== undefined && request.body !== null) {
                 if (Buffer.isBuffer(request.body)) {
                     return resolve(request.body);
                 }
+                if (typeof request.body === 'object' && Object.keys(request.body).length > 0) {
+                    return resolve(Buffer.from(JSON.stringify(request.body)));
+                }
+                if (typeof request.body === 'string' && request.body.length > 0) {
+                    return resolve(Buffer.from(request.body));
+                }
+            }
+
+            // 2. Si el stream ya terminó y no hay body parseado
+            if (request.complete || request.readableEnded) {
                 return resolve(Buffer.from([]));
             }
 
+            // 3. Comportamiento original: leer chunks del stream (ideal para multipart/form-data o binarios)
             const chunks: Buffer[] = [];
             request.on('data', (chunk: Buffer) => chunks.push(chunk));
             request.on('end', () => resolve(Buffer.concat(chunks)));
