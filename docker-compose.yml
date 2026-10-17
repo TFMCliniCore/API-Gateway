@@ -36,7 +36,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@ms-entidades-db:5432/api_gateway?schema=public
       VENTAS_MS_URL: http://clinicore-ms-ventas:3008/api/v1
       MS_INVENTARIO_URL: http://ms-inventario-api:3007/api/v1
-      MS_ENTIDADES_CORE_URL: http://ms-entidades-api:3005/api/v1
+      MS_ENTIDADES_CORE_URL: http://ms-entidades-api:3001/api/v1
       MS_INTEGRACIONES_URL: ${MS_INTEGRACIONES_URL}
       
       # 🚀 URLs apuntando directamente a los contenedores internos de la Agenda Activa
